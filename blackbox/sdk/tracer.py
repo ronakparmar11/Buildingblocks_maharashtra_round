@@ -2,6 +2,8 @@ import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from inspect import signature
+from random import Random
 from typing import Any
 
 from sqlmodel import Session, select
@@ -11,10 +13,12 @@ from blackbox.llm.base import LLMClient
 from blackbox.sdk.cassette import Cassette, Usage
 from blackbox.sdk.context import ExecutionContext, current_context
 from blackbox.store.hashing import sha256_json
-from blackbox.store.models import Run, Step
+from blackbox.store.models import Run, Step, Task
 from blackbox.store.repo import add_step, create_run, finish_run
 
-FaultFn = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
+FaultResult = tuple[dict[str, Any], dict[str, Any]]
+FaultFn = Callable[[dict[str, Any], Task, dict[str, Any], Random], FaultResult]
+LegacyFaultFn = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
 StepFn = Callable[[dict[str, Any], dict[str, Any]], tuple[dict[str, Any], Usage]]
 
 
@@ -39,12 +43,34 @@ _FAULTS: dict[str, _FaultHooks] = {}
 
 def register_fault(
     fault_type: str,
-    input_fn: FaultFn | None = None,
-    output_fn: FaultFn | None = None,
+    input_fn: FaultFn | LegacyFaultFn | None = None,
+    output_fn: FaultFn | LegacyFaultFn | None = None,
 ) -> None:
     if input_fn is None and output_fn is None:
         raise ValueError("A fault must define an input or output hook")
-    _FAULTS[fault_type] = _FaultHooks(input_fn=input_fn, output_fn=output_fn)
+    _FAULTS[fault_type] = _FaultHooks(
+        input_fn=_adapt_fault(input_fn),
+        output_fn=_adapt_fault(output_fn),
+    )
+
+
+def _adapt_fault(fault_fn: FaultFn | LegacyFaultFn | None) -> FaultFn | None:
+    if fault_fn is None:
+        return None
+    if len(signature(fault_fn).parameters) != 2:
+        return fault_fn  # type: ignore[return-value]
+
+    def adapted(
+        value: dict[str, Any],
+        task: Task,
+        fault_params: dict[str, Any],
+        rng: Random,
+    ) -> FaultResult:
+        del task, rng
+        legacy_result = fault_fn(value, fault_params)
+        return legacy_result, dict(fault_params)
+
+    return adapted
 
 
 class Tracer:
@@ -195,13 +221,21 @@ class Tracer:
                 output_fault: FaultFn | None = None
                 fault_params: dict[str, Any] = {}
                 if override is not None and override.kind == "fault":
-                    if override.fault_type is None or override.fault_type not in _FAULTS:
+                    if (
+                        override.fault_type is None
+                        or override.fault_type not in _FAULTS
+                    ):
                         raise ValueError(f"Unknown fault type: {override.fault_type}")
                     hooks = _FAULTS[override.fault_type]
                     fault_params = override.fault_params
+                    rng = Random(int(fault_params.get("seed", 0)))
                     if hooks.input_fn is not None:
                         meta["pre_override_input_hash"] = input_hash
-                        effective_input = hooks.input_fn(input, fault_params)
+                        effective_input, used_params = hooks.input_fn(
+                            input, ctx.task, dict(fault_params), rng
+                        )
+                        fault_params.clear()
+                        fault_params.update(used_params)
                         input_hash = sha256_json(effective_input)
                     output_fault = hooks.output_fn
 
@@ -215,7 +249,11 @@ class Tracer:
                 )
                 latency_ms = round((time.perf_counter() - started_at) * 1000)
                 if output_fault is not None:
-                    output = output_fault(output, fault_params)
+                    output, used_params = output_fault(
+                        output, ctx.task, dict(fault_params), rng
+                    )
+                    fault_params.clear()
+                    fault_params.update(used_params)
             output_text = output_text_fn(output)
         except Exception as error:
             latency_ms = round((time.perf_counter() - started_at) * 1000)
