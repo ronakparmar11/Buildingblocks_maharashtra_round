@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     N_TASKS: int = 300
     BLACKBOX_DEMO_MODE: int = 0
     BLACKBOX_MOCK_API: int = 0
+    COST_PER_WRONG_ANSWER_INR: int = 450
     SEED: int = 42
 
 

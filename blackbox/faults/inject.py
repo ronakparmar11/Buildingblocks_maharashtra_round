@@ -85,6 +85,7 @@ def _execute_fault(
     llm: LLMClient,
     retriever: Retriever,
     run_id: str | None = None,
+    origin: str = "fault",
 ) -> Run:
     if fault_type not in FAULT_TYPES:
         raise ValueError(f"Unknown fault type: {fault_type}")
@@ -101,7 +102,7 @@ def _execute_fault(
     context = ExecutionContext(
         run_id=run_id or uuid4().hex,
         task=task,
-        origin="fault",
+        origin=origin,
         overrides={
             step_key: Override(
                 kind="fault",

@@ -64,11 +64,14 @@ def replay(
 ) -> Run:
     init_db()
     with get_session() as session:
+        source_run = get_run(session, source_run_id)
+        if source_run is None:
+            raise ValueError(f"Unknown source run id: {source_run_id}")
         return _replay(
             session,
             source_run_id,
             _llm_client(),
-            get_retriever(),
+            get_retriever(source_run.workspace),
             overrides,
             freeze_before_idx,
             origin,

@@ -29,6 +29,8 @@ from blackbox.datagen.pipeline import (
 from blackbox.faults.inject import run_with_fault
 from blackbox.faults.targets import applicable_targets, latest_clean_run
 from blackbox.features.extract import build_dataset
+from blackbox.incidents.engine import explain_incident, verify_fix
+from blackbox.incidents.simulate import run_simulation
 from blackbox.labeling.bisect import label_fault_run
 from blackbox.labeling.counterfactual import label_organic_run
 from blackbox.llm.base import LLMClient
@@ -44,7 +46,17 @@ from blackbox.sdk.cassette import Cassette as CassetteStore
 from blackbox.sdk.context import ExecutionContext, Override
 from blackbox.sdk.tracer import Tracer
 from blackbox.store.db import get_session, init_db, migrate_database
-from blackbox.store.models import Cassette, Fault, Label, Prediction, Run, Step, Task
+from blackbox.store.models import (
+    Cassette,
+    Fault,
+    Incident,
+    IncidentEvent,
+    Label,
+    Prediction,
+    Run,
+    Step,
+    Task,
+)
 from blackbox.store.repo import get_run, get_steps, get_task, list_tasks
 
 app = typer.Typer(help="Black Box agent flight recorder.")
@@ -55,6 +67,7 @@ faults_app = typer.Typer(help="List and inject realistic agent faults.")
 label_app = typer.Typer(help="Label failed runs with counterfactual replay.")
 generate_app = typer.Typer(help="Generate clean, fault, and labeled run data.")
 features_app = typer.Typer(help="Build leakage-free step feature datasets.")
+incidents_app = typer.Typer(help="Inspect and verify business incidents.")
 app.add_typer(db_app, name="db")
 app.add_typer(corpus_app, name="corpus")
 app.add_typer(run_app, name="run")
@@ -62,6 +75,7 @@ app.add_typer(faults_app, name="faults")
 app.add_typer(label_app, name="label")
 app.add_typer(generate_app, name="generate")
 app.add_typer(features_app, name="features")
+app.add_typer(incidents_app, name="incidents")
 
 TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
@@ -131,6 +145,92 @@ def corpus_search(
 ) -> None:
     for result in get_retriever(workspace).search(query, k=k):
         typer.echo(f"{result['score']:.3f}\t{result['title']}\t{result['pid']}")
+
+
+def _inr(value: int) -> str:
+    digits = str(abs(value))
+    if len(digits) > 3:
+        head, tail = digits[:-3], digits[-3:]
+        groups = []
+        while head:
+            groups.append(head[-2:])
+            head = head[:-2]
+        digits = f"{','.join(reversed(groups))},{tail}"
+    return f"{'-' if value < 0 else ''}₹{digits}"
+
+
+@incidents_app.command("list")
+def incidents_list(workspace: str = typer.Option("nimbu", "--workspace")) -> None:
+    init_db()
+    with get_session() as session:
+        incidents = list(
+            session.exec(
+                select(Incident)
+                .where(Incident.workspace == workspace)
+                .order_by(Incident.last_seen.desc())
+            ).all()
+        )
+    table = Table("ID", "Status", "Severity", "Conversations", "Estimated cost", "Title")
+    for incident in incidents:
+        table.add_row(
+            incident.incident_id,
+            incident.status,
+            incident.severity,
+            str(incident.n_runs),
+            _inr(incident.est_cost_inr),
+            incident.title,
+        )
+    Console().print(table)
+
+
+@incidents_app.command("show")
+def incidents_show(incident_id: str) -> None:
+    init_db()
+    with get_session() as session:
+        incident = session.get(Incident, incident_id)
+        if incident is None:
+            raise typer.BadParameter(f"Unknown incident id: {incident_id}")
+        events = list(
+            session.exec(
+                select(IncidentEvent)
+                .where(IncidentEvent.incident_id == incident_id)
+                .order_by(IncidentEvent.created_at)
+            ).all()
+        )
+        typer.echo(incident.title)
+        typer.echo(
+            f"{incident.status} · {incident.severity} · {incident.n_runs} conversations · "
+            f"{_inr(incident.est_cost_inr)} estimated"
+        )
+        typer.echo(explain_incident(incident, session))
+        typer.echo("Timeline")
+        for event in events:
+            typer.echo(f"{event.created_at.isoformat()}  {event.text}")
+
+
+@incidents_app.command("verify")
+def incidents_verify(
+    incident_id: str, repair_run_id: str = typer.Option(..., "--repair-run")
+) -> None:
+    result = verify_fix(incident_id, repair_run_id)
+    typer.echo(
+        f"Fix verified on {result['n_passed']} of {result['n_total']} conversations; "
+        f"{result['tokens_saved']:,} tokens saved."
+    )
+
+
+@app.command("simulate")
+def simulate(
+    workspace: str = typer.Option("nimbu", "--workspace"),
+    n: int = typer.Option(30, "--n", min=1),
+    failure_rate: float = typer.Option(0.35, "--failure-rate", min=0.0, max=1.0),
+    seed: int = typer.Option(7, "--seed"),
+) -> None:
+    result = run_simulation(workspace, n, failure_rate, seed)
+    typer.echo(
+        f"Sent {result['sent']}; wrong {result['wrong']}; incidents opened "
+        f"{result['incidents_opened']}; emails queued {result['emails_queued']}."
+    )
 
 
 def _llm_client() -> LLMClient:
