@@ -1,0 +1,1 @@
+export { getMockDetail, getMockDiagnosis, runs } from "./data";

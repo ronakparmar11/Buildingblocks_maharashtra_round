@@ -13,14 +13,10 @@ import type {
   RunListResponse,
   TaskRecord,
 } from "../api/types";
-import {
-  evaluation,
-  fleet,
-  getMockDetail,
-  getMockDiagnosis,
-  runs,
-  tasks,
-} from "./data";
+import { evaluation } from "./eval";
+import { fleet } from "./fleet";
+import { getMockDetail, getMockDiagnosis, runs } from "./generator";
+import { tasks } from "./hero-runs";
 
 const jobs = new Map<string, number>();
 const wait = () =>
