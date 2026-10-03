@@ -39,6 +39,10 @@ from blackbox.llm.groq import GroqLLM
 from blackbox.model.evaluate import evaluate
 from blackbox.model.predict import diagnose
 from blackbox.model.train import train_model
+from blackbox.notify.mailer import Mailer
+from blackbox.notify.rules import evaluate_rules
+from blackbox.notify.templates import render_email
+from blackbox.notify.worker import worker as notification_worker
 from blackbox.repair.repair import repair as repair_run
 from blackbox.replay.compare import compare as compare_runs
 from blackbox.replay.engine import replay as replay_run
@@ -52,6 +56,7 @@ from blackbox.store.models import (
     Incident,
     IncidentEvent,
     Label,
+    NotificationLog,
     Prediction,
     Run,
     Step,
@@ -68,6 +73,7 @@ label_app = typer.Typer(help="Label failed runs with counterfactual replay.")
 generate_app = typer.Typer(help="Generate clean, fault, and labeled run data.")
 features_app = typer.Typer(help="Build leakage-free step feature datasets.")
 incidents_app = typer.Typer(help="Inspect and verify business incidents.")
+notify_app = typer.Typer(help="Send and inspect SMTP notifications.")
 app.add_typer(db_app, name="db")
 app.add_typer(corpus_app, name="corpus")
 app.add_typer(run_app, name="run")
@@ -76,6 +82,7 @@ app.add_typer(label_app, name="label")
 app.add_typer(generate_app, name="generate")
 app.add_typer(features_app, name="features")
 app.add_typer(incidents_app, name="incidents")
+app.add_typer(notify_app, name="notify")
 
 TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
@@ -231,6 +238,65 @@ def simulate(
         f"Sent {result['sent']}; wrong {result['wrong']}; incidents opened "
         f"{result['incidents_opened']}; emails queued {result['emails_queued']}."
     )
+
+
+@notify_app.command("test")
+def notify_test(to: str = typer.Option(..., "--to")) -> None:
+    rendered = render_email("test", {"workspace_name": "Nimbu Living support"})
+    row = notification_worker.enqueue("nimbu", "test", [to], rendered)
+    notification_worker.wait()
+    with get_session() as session:
+        stored = session.get(NotificationLog, row.notification_id)
+        assert stored is not None
+        typer.echo(f"Notification {stored.status}: {stored.notification_id}")
+
+
+@notify_app.command("status")
+def notify_status() -> None:
+    settings = get_settings()
+    connected, _ = Mailer(settings).check_connection()
+    if connected:
+        typer.echo(f"Connected to {settings.SMTP_HOST}:{settings.SMTP_PORT} (Mailpit)")
+    else:
+        typer.echo(
+            f"Can't reach the mail server at {settings.SMTP_HOST}:{settings.SMTP_PORT}. "
+            "Start Mailpit or update SMTP settings in .env."
+        )
+
+
+@notify_app.command("log")
+def notify_log(limit: int = typer.Option(20, "--limit", min=1)) -> None:
+    with get_session() as session:
+        rows = list(
+            session.exec(
+                select(NotificationLog)
+                .order_by(NotificationLog.created_at.desc())
+                .limit(limit)
+            ).all()
+        )
+    table = Table("When", "Kind", "Status", "Subject", "Error")
+    for row in rows:
+        table.add_row(
+            row.created_at.isoformat(),
+            row.rule_kind,
+            row.status,
+            row.subject,
+            row.error or "",
+        )
+    Console().print(table)
+
+
+@notify_app.command("digest")
+def notify_digest(workspace: str = typer.Option("nimbu", "--workspace")) -> None:
+    row = evaluate_rules("daily_digest", workspace)
+    if row is None:
+        typer.echo("Digest not sent.")
+        return
+    notification_worker.wait()
+    with get_session() as session:
+        stored = session.get(NotificationLog, row.notification_id)
+        assert stored is not None
+        typer.echo(f"Digest {stored.status}: {stored.notification_id}")
 
 
 def _llm_client() -> LLMClient:

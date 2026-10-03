@@ -24,6 +24,7 @@ from blackbox.store.models import (
 
 Diagnosis = dict[str, Any]
 ReplayFn = Callable[..., Run]
+NotifyFn = Callable[[str, str, Incident | None], object]
 
 PATTERNS = {
     "retrieve": "answer not found in the help article",
@@ -282,11 +283,20 @@ ALLOWED_TRANSITIONS = {
 
 
 def transition_status(
-    incident_id: str, status: str, *, session: Session | None = None
+    incident_id: str,
+    status: str,
+    *,
+    session: Session | None = None,
+    notify_fn: NotifyFn | None = None,
 ) -> Incident:
     if session is None:
         with get_session() as managed_session:
-            return transition_status(incident_id, status, session=managed_session)
+            return transition_status(
+                incident_id,
+                status,
+                session=managed_session,
+                notify_fn=notify_fn,
+            )
     incident = session.get(Incident, incident_id)
     if incident is None:
         raise ValueError(f"Unknown incident id: {incident_id}")
@@ -299,6 +309,12 @@ def transition_status(
     session.add(incident)
     session.commit()
     session.refresh(incident)
+    if status == "resolved":
+        if notify_fn is None:
+            from blackbox.notify.rules import evaluate_rules
+
+            notify_fn = evaluate_rules
+        notify_fn("incident_resolved", incident.workspace, incident)
     return incident
 
 
@@ -317,6 +333,7 @@ def verify_fix(
     repair_run_id: str,
     *,
     replay_fn: ReplayFn | None = None,
+    notify_fn: NotifyFn | None = None,
 ) -> dict[str, Any]:
     from blackbox.replay.engine import replay
 
@@ -396,6 +413,13 @@ def verify_fix(
             )
         session.add(incident)
         session.commit()
+        session.refresh(incident)
+        if incident.status == "fix_verified":
+            if notify_fn is None:
+                from blackbox.notify.rules import evaluate_rules
+
+                notify_fn = evaluate_rules
+            notify_fn("fix_verified", incident.workspace, incident)
     return result
 
 
@@ -404,14 +428,28 @@ def on_run_finished(
     *,
     diagnose_fn: Callable[[str], Diagnosis] = diagnose,
     assign_fn: Callable[..., Incident] = assign_incident,
+    notify_fn: NotifyFn | None = None,
 ) -> Incident | None:
     if run.origin not in {"live", "simulated"} or run.workspace == "hotpot":
         return None
+    if notify_fn is None:
+        from blackbox.notify.rules import evaluate_rules
+
+        notify_fn = evaluate_rules
     if run.outcome != "fail":
+        notify_fn("failure_rate", run.workspace, None)
         return None
     diagnosis = diagnose_fn(run.run_id)
     incident = assign_fn(run.run_id, diagnosis)
-    from blackbox.notify.rules import evaluate_rules
-
-    evaluate_rules(incident)
+    if incident.n_runs == 1:
+        notify_fn("incident_opened", run.workspace, incident)
+    elif incident.severity == "high":
+        cost_per_run = incident.est_cost_inr // incident.n_runs
+        previous_severity = _severity(
+            incident.n_runs - 1,
+            incident.est_cost_inr - cost_per_run,
+        )
+        if previous_severity != "high":
+            notify_fn("incident_escalated", run.workspace, incident)
+    notify_fn("failure_rate", run.workspace, None)
     return incident

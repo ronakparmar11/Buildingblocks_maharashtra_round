@@ -212,7 +212,12 @@ def test_verify_fix_applies_override_to_every_affected_run(
         result.tokens_saved = 12
         return result
 
-    result = verify_fix(incident_id, "repair-1", replay_fn=replay_fn)
+    result = verify_fix(
+        incident_id,
+        "repair-1",
+        replay_fn=replay_fn,
+        notify_fn=lambda *_args: None,
+    )
 
     assert result["n_total"] == 2
     assert result["n_passed"] == 2
@@ -236,3 +241,41 @@ def test_hook_ignores_non_production_origins(origin: str) -> None:
         raise AssertionError("diagnosis should not run")
 
     assert on_run_finished(run, diagnose_fn=unexpected) is None
+
+
+@pytest.mark.parametrize(
+    ("n_runs", "severity", "estimated_cost", "expected"),
+    [
+        (1, "low", 450, ["incident_opened", "failure_rate"]),
+        (10, "high", 4_500, ["incident_escalated", "failure_rate"]),
+        (11, "high", 4_950, ["failure_rate"]),
+    ],
+)
+def test_hook_notifies_only_when_incident_first_becomes_high(
+    n_runs: int, severity: str, estimated_cost: int, expected: list[str]
+) -> None:
+    run = _run("notify", "task-notify")
+    incident = Incident(
+        workspace="nimbu",
+        group_key="test",
+        title="Returns questions answered wrong",
+        category="returns",
+        cause_step_name="retrieve",
+        cause_feature="query_title_overlap",
+        severity=severity,
+        status="open",
+        est_cost_inr=estimated_cost,
+        n_runs=n_runs,
+        representative_run_id=run.run_id,
+    )
+    events: list[str] = []
+
+    result = on_run_finished(
+        run,
+        diagnose_fn=lambda _run_id: {"ranking": []},
+        assign_fn=lambda *_args: incident,
+        notify_fn=lambda event, *_args: events.append(event),
+    )
+
+    assert result is incident
+    assert events == expected

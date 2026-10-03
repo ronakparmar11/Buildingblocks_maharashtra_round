@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     BLACKBOX_DEMO_MODE: int = 0
     BLACKBOX_MOCK_API: int = 0
     COST_PER_WRONG_ANSWER_INR: int = 450
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 1025
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_STARTTLS: int = 0
+    SMTP_SSL: int = 0
+    SMTP_FROM: str = "Black Box <alerts@blackbox.local>"
+    APP_BASE_URL: str = "http://localhost:5173"
+    NOTIFY_DEFAULT_EMAIL: str = "support-ai@nimbu.local"
+    NOTIFY_THROTTLE_MINUTES: int = 30
+    DIGEST_HOUR_LOCAL: int = 9
     SEED: int = 42
 
 
