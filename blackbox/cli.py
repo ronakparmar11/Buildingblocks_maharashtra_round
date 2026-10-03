@@ -1,10 +1,12 @@
 import json
+import logging
 from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
 import typer
 from rich.console import Console
+from rich.logging import RichHandler
 from rich.progress import Progress
 from rich.table import Table
 from sqlalchemy import func
@@ -15,6 +17,12 @@ from blackbox.config import get_settings
 from blackbox.corpus.embed import build_embeddings
 from blackbox.corpus.hotpot import build_hotpot_corpus
 from blackbox.corpus.retriever import get_retriever
+from blackbox.datagen.pipeline import (
+    DataGenerationPipeline,
+    Stage,
+    datagen_status,
+    write_datagen_report,
+)
 from blackbox.faults.inject import run_with_fault
 from blackbox.faults.targets import applicable_targets, latest_clean_run
 from blackbox.labeling.bisect import label_fault_run
@@ -37,11 +45,13 @@ corpus_app = typer.Typer(help="Build and search the retrieval corpus.")
 run_app = typer.Typer(help="Execute and inspect agent runs.")
 faults_app = typer.Typer(help="List and inject realistic agent faults.")
 label_app = typer.Typer(help="Label failed runs with counterfactual replay.")
+generate_app = typer.Typer(help="Generate clean, fault, and labeled run data.")
 app.add_typer(db_app, name="db")
 app.add_typer(corpus_app, name="corpus")
 app.add_typer(run_app, name="run")
 app.add_typer(faults_app, name="faults")
 app.add_typer(label_app, name="label")
+app.add_typer(generate_app, name="generate")
 
 TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
@@ -312,7 +322,9 @@ def compare_command(run_a_id: str, run_b_id: str) -> None:
 
 def _print_label_summary(labels: list[Label], steps_by_run: dict[str, int]) -> None:
     labeled = len(labels)
-    verified_rate = sum(label.verified for label in labels) / labeled if labeled else 0.0
+    verified_rate = (
+        sum(label.verified for label in labels) / labeled if labeled else 0.0
+    )
     injection_labels = [
         label for label in labels if label.matches_injection is not None
     ]
@@ -322,9 +334,7 @@ def _print_label_summary(labels: list[Label], steps_by_run: dict[str, int]) -> N
         if injection_labels
         else None
     )
-    avg_replays = (
-        sum(label.n_replays for label in labels) / labeled if labeled else 0.0
-    )
+    avg_replays = sum(label.n_replays for label in labels) / labeled if labeled else 0.0
     avg_steps = (
         sum(steps_by_run[label.run_id] for label in labels) / labeled
         if labeled
@@ -394,9 +404,83 @@ def label_organic(limit: int = typer.Option(60, min=1)) -> None:
     _print_label_summary(labels, steps_by_run)
 
 
-@app.command()
-def generate() -> None:
-    _not_implemented()
+def _run_generation(stage: Stage, limit_tasks: int | None) -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[RichHandler(show_time=False, show_path=False)],
+    )
+    try:
+        DataGenerationPipeline().run(stage, limit_tasks)
+    except KeyboardInterrupt:
+        raise typer.Exit(130) from None
+
+
+@generate_app.command("all")
+def generate_all(
+    limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+) -> None:
+    _run_generation("all", limit_tasks)
+
+
+@generate_app.command("clean")
+def generate_clean(
+    limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+) -> None:
+    _run_generation("clean", limit_tasks)
+
+
+@generate_app.command("faults")
+def generate_faults(
+    limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+) -> None:
+    _run_generation("faults", limit_tasks)
+
+
+@generate_app.command("label")
+def generate_label(
+    limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+) -> None:
+    _run_generation("label", limit_tasks)
+
+
+@generate_app.command("organic")
+def generate_organic(
+    limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+) -> None:
+    _run_generation("organic", limit_tasks)
+
+
+@generate_app.command("status")
+def generate_status() -> None:
+    report = datagen_status()
+    write_datagen_report()
+    console = Console()
+    console.print(
+        f"[bold]Tasks[/bold] {report['tasks']}  "
+        f"clean {report['clean']['runs']}  "
+        f"pass rate {report['clean']['pass_rate']:.1%}"
+    )
+    fault_table = Table("Fault type", "Runs", "Failure rate")
+    for fault_type, values in report["faults"].items():
+        fault_table.add_row(
+            fault_type,
+            str(values["runs"]),
+            f"{values['failure_rate']:.1%}",
+        )
+    console.print(fault_table)
+    console.print(
+        f"[bold]Labels[/bold] {report['labels']['total']}  "
+        f"verified {report['labels']['verified']} "
+        f"({report['labels']['verified_rate']:.1%})  "
+        f"matches injection {report['labels']['matches_injection']} "
+        f"({report['labels']['matches_injection_rate']:.1%})"
+    )
+    console.print(
+        f"Organic labels {report['organic_labels']}  "
+        f"cassette hit rate {report['cassette']['hit_rate']:.1%}  "
+        f"total tokens {report['total_tokens']:,}"
+    )
 
 
 @app.command()
