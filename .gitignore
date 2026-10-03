@@ -1,0 +1,9 @@
+data/
+artifacts/
+.env
+node_modules/
+__pycache__/
+.venv/
+*.egg-info/
+dist/
+*.tsbuildinfo
