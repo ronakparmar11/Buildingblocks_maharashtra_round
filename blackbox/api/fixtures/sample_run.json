@@ -354,6 +354,12 @@
     {"source": "q1/check#1", "target": "synthesize"},
     {"source": "q2/check#0", "target": "synthesize"}
   ],
+  "fault": {
+    "run_id": "r_demo_failed_comparison",
+    "fault_type": "HALLUCINATED_SYNTHESIS",
+    "step_key": "synthesize",
+    "params": {"seed": 42}
+  },
   "label": {
     "run_id": "r_demo_failed_comparison",
     "culprit_step_key": "synthesize",

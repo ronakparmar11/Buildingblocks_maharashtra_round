@@ -1,0 +1,83 @@
+{
+  "diagnosis": {
+    "run_id": "r_demo_failed_comparison",
+    "model_version": "demo-ranker-v1",
+    "latency_ms": 18.4,
+    "ranking": [
+      {
+        "step_key": "synthesize",
+        "score": 0.94,
+        "rank": 1,
+        "reasons": [
+          {
+            "feature": "final_in_subanswers",
+            "text": "Poor final answer agreement with sub-answers is a likely cause.",
+            "evidence": "Final answer: no; sub-answers: q1=American, q2=American",
+            "contribution": 0.71
+          }
+        ]
+      },
+      {
+        "step_key": "q1/retrieve#0",
+        "score": 0.62,
+        "rank": 2,
+        "reasons": [
+          {
+            "feature": "query_title_overlap",
+            "text": "Poor query and title alignment is a likely cause.",
+            "evidence": "Query: Scott Derrickson nationality; title: Scott Derrickson (footballer)",
+            "contribution": 0.34
+          }
+        ]
+      }
+    ]
+  },
+  "replay": {
+    "run_id": "r_demo_replay",
+    "outcome": "pass",
+    "score_f1": 1.0,
+    "n_reused": 11,
+    "n_executed": 1,
+    "tokens_saved": 1123,
+    "tokens_total": 171,
+    "latency_ms": 840
+  },
+  "repair": {
+    "attempts": [
+      {
+        "step_key": "synthesize",
+        "strategy": "Use only the sub-answers",
+        "run_id": "r_demo_repair",
+        "outcome": "pass",
+        "n_executed": 1,
+        "n_reused": 11,
+        "tokens_total": 171
+      }
+    ],
+    "repaired": true,
+    "winning_run_id": "r_demo_repair"
+  },
+  "eval": {
+    "kpis": {"top_1": 0.73, "top_3": 0.91, "mrr": 0.82, "latency_ms": 24.6},
+    "tables": {"baselines": [], "lofo": [], "per_fault": []},
+    "replay": {"avg_pct_reused": 0.79, "avg_tokens_saved": 884.0, "n_replays": 48.0},
+    "bisect": {"avg_replays": 3.2, "avg_steps": 8.4, "n_labels": 42.0},
+    "repair": {"success_rate": 0.68, "n_attempted": 25}
+  },
+  "fleet": {
+    "by_step_name": [
+      {"name": "synthesize", "count": 12, "pct": 0.48},
+      {"name": "retrieve", "count": 8, "pct": 0.32},
+      {"name": "extract", "count": 5, "pct": 0.2}
+    ],
+    "by_reason": [
+      {"feature": "final_in_subanswers", "text": "Final answer disagrees with sub-answers", "count": 9},
+      {"feature": "query_title_overlap", "text": "Query poorly matches retrieved titles", "count": 7}
+    ],
+    "by_fault_type": [
+      {"fault_type": "HALLUCINATED_SYNTHESIS", "count": 10, "pct": 0.4},
+      {"fault_type": "DISTRACTOR_RETRIEVAL", "count": 8, "pct": 0.32}
+    ],
+    "total_failed": 25
+  }
+}

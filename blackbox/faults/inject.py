@@ -84,6 +84,7 @@ def _execute_fault(
     seed: int,
     llm: LLMClient,
     retriever: Retriever,
+    run_id: str | None = None,
 ) -> Run:
     if fault_type not in FAULT_TYPES:
         raise ValueError(f"Unknown fault type: {fault_type}")
@@ -98,7 +99,7 @@ def _execute_fault(
     fault_params = _fault_params(task, fault_type, target, clean_steps, retriever, seed)
     tracer = Tracer(session, Cassette(session), llm=llm)
     context = ExecutionContext(
-        run_id=uuid4().hex,
+        run_id=run_id or uuid4().hex,
         task=task,
         origin="fault",
         overrides={
@@ -126,7 +127,13 @@ def _execute_fault(
     return run
 
 
-def run_with_fault(task: Task, fault_type: str, step_key: str, seed: int) -> Run:
+def run_with_fault(
+    task: Task,
+    fault_type: str,
+    step_key: str,
+    seed: int,
+    run_id: str | None = None,
+) -> Run:
     init_db()
     with get_session() as session:
         stored_task = session.get(Task, task.task_id)
@@ -140,4 +147,5 @@ def run_with_fault(task: Task, fault_type: str, step_key: str, seed: int) -> Run
             seed,
             _llm_client(),
             get_retriever(),
+            run_id,
         )
