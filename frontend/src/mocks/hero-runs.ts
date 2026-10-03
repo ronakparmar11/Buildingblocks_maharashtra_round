@@ -1,0 +1,1 @@
+export { details, diagnoses, tasks } from "./data";
