@@ -1,10 +1,34 @@
 import typer
+from sqlalchemy import func
+from sqlmodel import select
+
+from blackbox.store.db import get_session, init_db
+from blackbox.store.models import Cassette, Fault, Label, Prediction, Run, Step, Task
 
 app = typer.Typer(help="Black Box agent flight recorder.")
+db_app = typer.Typer(help="Initialize and inspect the Black Box database.")
+app.add_typer(db_app, name="db")
+
+TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
 
 def _not_implemented() -> None:
     typer.echo("not implemented yet")
+
+
+@db_app.command("init")
+def db_init() -> None:
+    init_db()
+    typer.echo("Database initialized.")
+
+
+@db_app.command("stats")
+def db_stats() -> None:
+    init_db()
+    with get_session() as session:
+        for model in TABLES:
+            count = session.exec(select(func.count()).select_from(model)).one()
+            typer.echo(f"{model.__tablename__}: {count}")
 
 
 @app.command()
