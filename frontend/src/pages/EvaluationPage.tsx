@@ -235,7 +235,7 @@ export default function EvaluationPage() {
                   dataKey="top1"
                   name="Top-1"
                   fill="#FF4F00"
-                  animationDuration={150}
+                  isAnimationActive={false}
                 >
                   <LabelList
                     dataKey="top1"
@@ -249,7 +249,7 @@ export default function EvaluationPage() {
                   name="Top-3"
                   fill="#5B6873"
                   fillOpacity={0.4}
-                  animationDuration={150}
+                  isAnimationActive={false}
                 >
                   <LabelList
                     dataKey="top3"
@@ -328,7 +328,7 @@ export default function EvaluationPage() {
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip />
-                <Bar dataKey="value" animationDuration={150}>
+                <Bar dataKey="value" isAnimationActive={false}>
                   <LabelList
                     dataKey="value"
                     position="right"
