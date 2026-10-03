@@ -31,6 +31,9 @@ from blackbox.labeling.counterfactual import label_organic_run
 from blackbox.llm.base import LLMClient
 from blackbox.llm.gemini import GeminiLLM
 from blackbox.llm.groq import GroqLLM
+from blackbox.model.evaluate import evaluate
+from blackbox.model.predict import diagnose
+from blackbox.model.train import train_model
 from blackbox.replay.compare import compare as compare_runs
 from blackbox.replay.engine import replay as replay_run
 from blackbox.sdk.cassette import Cassette as CassetteStore
@@ -499,14 +502,47 @@ def features_build(split: str = typer.Argument("train")) -> None:
     )
 
 
-@app.command()
-def train() -> None:
-    _not_implemented()
+@app.command("train")
+def train_command() -> None:
+    meta = train_model()
+    typer.echo(
+        f"Trained {meta['version']} on {meta['train_runs']} runs; "
+        f"CV Top-1={meta['cv']['top_1']:.3f}, MRR={meta['cv']['mrr']:.3f}."
+    )
 
 
-@app.command()
-def eval() -> None:
-    _not_implemented()
+@app.command("eval")
+def eval_command(
+    judge_limit: int = typer.Option(120, "--judge-limit", min=0),
+    no_lofo: bool = typer.Option(False, "--no-lofo"),
+) -> None:
+    result = evaluate(judge_limit=judge_limit, lofo=not no_lofo)
+    table = Table("Set", "Method", "Top-1", "Top-3", "MRR", "Mean idx error")
+    for row in result["tables"]["baselines"]:
+        table.add_row(
+            str(row["set"]),
+            str(row["method"]),
+            f"{row['top_1']:.3f}",
+            f"{row['top_3']:.3f}",
+            f"{row['mrr']:.3f}",
+            f"{row['mean_idx_error']:.2f}",
+        )
+    Console().print(table)
+
+
+@app.command("diagnose")
+def diagnose_command(run_id: str) -> None:
+    try:
+        result = diagnose(run_id)
+    except ValueError as error:
+        raise typer.BadParameter(str(error)) from error
+    table = Table("Rank", "Step", "Index", "Score")
+    for row in result["ranking"]:
+        table.add_row(
+            str(row["rank"]), str(row["step_key"]), str(row["idx"]), f"{row['score']:.4f}"
+        )
+    Console().print(table)
+    typer.echo(f"Diagnosis latency: {result['latency_ms']:.1f} ms")
 
 
 @app.command()
