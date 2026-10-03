@@ -449,13 +449,19 @@ def _dataset_rows(
     split: str,
     fault_types: Sequence[str] | None,
     include_organic: bool,
+    workspace: str,
 ) -> list[tuple[Run, Label, Task, Fault | None]]:
     statement = (
         select(Run, Label, Task, Fault)
         .join(Label, Label.run_id == Run.run_id)
         .join(Task, Task.task_id == Run.task_id)
         .outerjoin(Fault, Fault.run_id == Run.run_id)
-        .where(Run.outcome == "fail", Label.verified.is_(True), Task.split == split)
+        .where(
+            Run.outcome == "fail",
+            Run.workspace == workspace,
+            Label.verified.is_(True),
+            Task.split == split,
+        )
     )
     if include_organic and fault_types:
         statement = statement.where(
@@ -476,12 +482,18 @@ def build_dataset(
     split: str,
     fault_types: Sequence[str] | None = None,
     include_organic: bool = False,
+    workspace: str = "hotpot",
 ) -> tuple[pd.DataFrame, pd.Series, list[int], pd.DataFrame]:
     init_db()
     settings = get_settings()
     with get_session() as session:
-        stats_path = Path(settings.ARTIFACTS_DIR) / "feature_stats.json"
-        stats = compute_reference_stats(session)
+        stats_name = (
+            "feature_stats.json"
+            if workspace == "hotpot"
+            else f"feature_stats_{workspace}.json"
+        )
+        stats_path = Path(settings.ARTIFACTS_DIR) / stats_name
+        stats = compute_reference_stats(session, workspace=workspace)
         save_reference_stats(stats, stats_path, settings)
 
         frames: list[pd.DataFrame] = []
@@ -489,7 +501,7 @@ def build_dataset(
         groups: list[int] = []
         metadata: list[dict[str, str]] = []
         for run, label, task, fault in _dataset_rows(
-            session, split, fault_types, include_organic
+            session, split, fault_types, include_organic, workspace
         ):
             steps = list(
                 session.exec(

@@ -10,12 +10,24 @@ from blackbox.agent.prompts import (
     synthesize_prompt,
 )
 from blackbox.agent.scoring import f1, is_pass
+from blackbox.corpus.retriever import Retriever
 from blackbox.sdk.cassette import Usage
 from blackbox.sdk.context import ExecutionContext
 from blackbox.store.models import Run, Task
 from blackbox.store.repo import finish_run, get_run
 
 logger = logging.getLogger(__name__)
+
+NIMBU_PREAMBLE = (
+    "You are the customer support assistant for Nimbu Living, an Indian home and "
+    "kitchen store. Answer only from the help articles provided. Keep answers short."
+)
+
+
+def _workspace_prompt(task: Task, prompt: str) -> str:
+    if task.workspace == "nimbu":
+        return f"{NIMBU_PREAMBLE}\n\n{prompt}"
+    return prompt
 
 
 def _fallback_plan(question: str) -> dict[str, Any]:
@@ -89,6 +101,12 @@ def _repair_retrieval_call(
     if params.get("retrieval_mode") == "title_entity":
         entity = str(params.get("entity", query))
         return {"passages": list(ctx.retriever.search_titles(entity, k=k))}
+    if params.get("exclude_archived"):
+        return {
+            "passages": list(
+                ctx.retriever.search(query, k=k, exclude_archived=True)
+            )
+        }
     return {"passages": list(ctx.retriever.search(query, k=k))}
 
 
@@ -104,10 +122,11 @@ def _prompted_llm_call(
 
 
 def run_agent(task: Task, ctx: ExecutionContext) -> Run:
-    if ctx.tracer is None or ctx.retriever is None:
-        raise ValueError("ExecutionContext requires tracer and retriever")
+    if ctx.tracer is None:
+        raise ValueError("ExecutionContext requires a tracer")
     if ctx.task.task_id != task.task_id:
         raise ValueError("Task does not match the execution context")
+    ctx.retriever = ctx.retriever or Retriever.for_workspace(task.workspace)
 
     tracer = ctx.tracer
     state: dict[str, Any] = {
@@ -125,7 +144,7 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
 
     try:
         with tracer.run_scope(ctx):
-            prompt = plan_prompt(task.question)
+            prompt = _workspace_prompt(task, plan_prompt(task.question))
             plan_output = tracer.step(
                 key="plan",
                 name="plan",
@@ -138,10 +157,13 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                     tracer,
                     input_data,
                     params,
-                    plan_prompt(
-                        task.question,
-                        str(params.get("prompt_variant", "")),
-                        task.qtype,
+                    _workspace_prompt(
+                        task,
+                        plan_prompt(
+                            task.question,
+                            str(params.get("prompt_variant", "")),
+                            task.qtype,
+                        ),
                     ),
                 ),
                 output_text_fn=lambda output: (
@@ -203,7 +225,9 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                         input={
                             "subquestion": subquestion,
                             "passages": passages,
-                            "prompt": extract_prompt(subquestion, passages),
+                            "prompt": _workspace_prompt(
+                                task, extract_prompt(subquestion, passages)
+                            ),
                         },
                         fn=lambda input_data,
                         params,
@@ -212,10 +236,13 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                             tracer,
                             input_data,
                             params,
-                            extract_prompt(
-                                subquestion,
-                                passages,
-                                str(params.get("prompt_variant", "")),
+                            _workspace_prompt(
+                                task,
+                                extract_prompt(
+                                    subquestion,
+                                    passages,
+                                    str(params.get("prompt_variant", "")),
+                                ),
                             ),
                         ),
                         output_text_fn=lambda output: str(output.get("answer", "")),
@@ -235,7 +262,9 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                             "subquestion": subquestion,
                             "answer": answer,
                             "passages": passages,
-                            "prompt": check_prompt(subquestion, answer, passages),
+                            "prompt": _workspace_prompt(
+                                task, check_prompt(subquestion, answer, passages)
+                            ),
                         },
                         fn=tracer.llm_call,
                         output_text_fn=lambda output: (
@@ -259,7 +288,9 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                             "subquestion": subquestion,
                             "previous_query": query,
                             "previous_answer": answer,
-                            "prompt": reformulate_prompt(subquestion, query, answer),
+                            "prompt": _workspace_prompt(
+                                task, reformulate_prompt(subquestion, query, answer)
+                            ),
                         },
                         fn=tracer.llm_call,
                         output_text_fn=lambda output: str(output.get("query", "")),
@@ -267,7 +298,9 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                     query = str(reformulated.get("query", ""))
                     attempt += 1
 
-            synth_prompt = synthesize_prompt(task.question, state["subanswers"])
+            synth_prompt = _workspace_prompt(
+                task, synthesize_prompt(task.question, state["subanswers"])
+            )
             synthesis = tracer.step(
                 key="synthesize",
                 name="synthesize",
@@ -284,10 +317,13 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                     tracer,
                     input_data,
                     params,
-                    synthesize_prompt(
-                        task.question,
-                        state["subanswers"],
-                        str(params.get("prompt_variant", "")),
+                    _workspace_prompt(
+                        task,
+                        synthesize_prompt(
+                            task.question,
+                            state["subanswers"],
+                            str(params.get("prompt_variant", "")),
+                        ),
                     ),
                 ),
                 output_text_fn=lambda output: str(output.get("answer", "")),

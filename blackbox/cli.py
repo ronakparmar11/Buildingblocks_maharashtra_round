@@ -150,7 +150,7 @@ def _execute_clean(session: Session, task: Task, llm: LLMClient) -> Run:
         origin="clean",
         demo_mode=bool(get_settings().BLACKBOX_DEMO_MODE),
         tracer=tracer,
-        retriever=get_retriever(),
+        retriever=get_retriever(task.workspace),
     )
     return run_agent(task, context)
 
@@ -438,14 +438,14 @@ def label_organic(limit: int = typer.Option(60, min=1)) -> None:
     _print_label_summary(labels, steps_by_run)
 
 
-def _run_generation(stage: Stage, limit_tasks: int | None) -> None:
+def _run_generation(stage: Stage, limit_tasks: int | None, workspace: str) -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(message)s",
         handlers=[RichHandler(show_time=False, show_path=False)],
     )
     try:
-        DataGenerationPipeline().run(stage, limit_tasks)
+        DataGenerationPipeline(workspace=workspace).run(stage, limit_tasks)
     except KeyboardInterrupt:
         raise typer.Exit(130) from None
 
@@ -453,36 +453,41 @@ def _run_generation(stage: Stage, limit_tasks: int | None) -> None:
 @generate_app.command("all")
 def generate_all(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("all", limit_tasks)
+    _run_generation("all", limit_tasks, workspace)
 
 
 @generate_app.command("clean")
 def generate_clean(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("clean", limit_tasks)
+    _run_generation("clean", limit_tasks, workspace)
 
 
 @generate_app.command("faults")
 def generate_faults(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("faults", limit_tasks)
+    _run_generation("faults", limit_tasks, workspace)
 
 
 @generate_app.command("label")
 def generate_label(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("label", limit_tasks)
+    _run_generation("label", limit_tasks, workspace)
 
 
 @generate_app.command("organic")
 def generate_organic(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("organic", limit_tasks)
+    _run_generation("organic", limit_tasks, workspace)
 
 
 @generate_app.command("status")

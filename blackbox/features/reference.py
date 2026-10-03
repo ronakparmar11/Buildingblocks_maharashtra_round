@@ -67,17 +67,24 @@ def reference_stats_from_steps(steps: Iterable[Step]) -> ReferenceStats:
     }
 
 
-def compute_reference_stats(session: Session | None = None) -> ReferenceStats:
+def compute_reference_stats(
+    session: Session | None = None, workspace: str = "hotpot"
+) -> ReferenceStats:
     if session is None:
         init_db()
         with get_session() as db_session:
-            return compute_reference_stats(db_session)
+            return compute_reference_stats(db_session, workspace=workspace)
 
     statement = (
         select(Step)
         .join(Run, Run.run_id == Step.run_id)
         .join(Task, Task.task_id == Run.task_id)
-        .where(Run.origin == "clean", Run.outcome == "pass", Task.split == "train")
+        .where(
+            Run.origin == "clean",
+            Run.outcome == "pass",
+            Run.workspace == workspace,
+            Task.split == "train",
+        )
         .order_by(Step.name, Step.step_id)
     )
     return reference_stats_from_steps(session.exec(statement).all())

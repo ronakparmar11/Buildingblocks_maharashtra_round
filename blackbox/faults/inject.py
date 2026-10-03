@@ -146,6 +146,6 @@ def run_with_fault(
             step_key,
             seed,
             _llm_client(),
-            get_retriever(),
+            get_retriever(stored_task.workspace),
             run_id,
         )

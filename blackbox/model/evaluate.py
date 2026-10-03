@@ -84,7 +84,18 @@ def _baseline_rows(
     feature_latency_ms: float,
 ) -> list[dict[str, Any]]:
     if not groups:
-        return []
+        empty_metrics = {
+            "top_1": 0.0,
+            "top_3": 0.0,
+            "mrr": 0.0,
+            "mean_idx_error": 0.0,
+            "n_runs": 0.0,
+            "latency_ms": 0.0,
+        }
+        return [
+            {"set": set_name, "method": method, **empty_metrics}
+            for method in ("Model", "Random (20 seeds)", "Last step", "Heuristic")
+        ]
     random_results = [
         _evaluate_scores(random_scores(groups, seed), labels, groups, features)
         for seed in range(20)
@@ -283,6 +294,17 @@ def evaluate(
                 feature_latency_ms,
             )
         )
+    support_features, support_labels, _, support_metadata = build_dataset(
+        "test", include_organic=True, workspace="nimbu"
+    )
+    support_rows = _baseline_rows(
+        "support",
+        support_features,
+        support_labels,
+        _groups(support_metadata),
+        0.0,
+    )
+    baseline_rows.extend(support_rows)
     baseline_rows.extend(_judge_rows(metadata, labels, features, judge_limit))
     per_fault = _per_fault(features, labels, metadata) if not metadata.empty else []
     lofo_rows: list[dict[str, Any]] = []
@@ -320,12 +342,21 @@ def evaluate(
         (row for row in baseline_rows if row["set"] == "A" and row["method"] == "Model"),
         {},
     )
+    model_support = next(
+        (
+            row
+            for row in support_rows
+            if row["set"] == "support" and row["method"] == "Model"
+        ),
+        {},
+    )
     result = {
         "kpis": {
             "top_1": model_a.get("top_1", 0.0),
             "top_3": model_a.get("top_3", 0.0),
             "mrr": model_a.get("mrr", 0.0),
             "latency_ms": model_a.get("latency_ms", 0.0),
+            "top1_support": model_support.get("top_1", 0.0),
         },
         "tables": {"baselines": baseline_rows, "lofo": lofo_rows, "per_fault": per_fault},
         "replay": replay,

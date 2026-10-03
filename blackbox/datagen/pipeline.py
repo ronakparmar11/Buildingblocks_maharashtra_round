@@ -68,10 +68,12 @@ class DataGenerationPipeline:
         self,
         llm: LLMClient | None = None,
         retriever: Retriever | None = None,
+        workspace: str = "hotpot",
     ) -> None:
         self.settings = get_settings()
         self.llm = llm or _llm_client()
-        self.retriever = retriever or get_retriever()
+        self.workspace = workspace
+        self.retriever = retriever or get_retriever(workspace)
         self._stop = Event()
 
     def run(self, stage: Stage, limit_tasks: int | None = None) -> None:
@@ -97,7 +99,11 @@ class DataGenerationPipeline:
 
     def _task_ids(self, limit_tasks: int | None) -> list[str]:
         with get_session() as session:
-            statement = select(Task.task_id).order_by(Task.task_id)
+            statement = (
+                select(Task.task_id)
+                .where(Task.workspace == self.workspace)
+                .order_by(Task.task_id)
+            )
             if limit_tasks is not None:
                 statement = statement.limit(limit_tasks)
             return list(session.exec(statement).all())
