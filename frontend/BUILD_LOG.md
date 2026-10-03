@@ -10,7 +10,7 @@
 | f05 Compare | done | Outcome comparison, generated divergence summary, compact status route, data-dependent filter, expandable first word diff and side-by-side JSON, plus missing/loading/error states. Browser checks left: compact framing and narrow table. |
 | f06 Evaluation | done | Judge-readable KPI row, interactive baseline bars, leave-one-out heat table, failure accuracy, proof cost, fix rates, method details, and screen-reader data fallbacks. Browser checks left: projector labels and chart animation. |
 | f07 Fleet | done | Generated fleet headline, sorted step/reason bars with hover counts, injected-failure table, Runs drill-down URLs, real mock cause filtering, and all data states. Browser checks left: hover and mobile layout. |
-| f08 Live lab | pending | |
+| f08 Live lab | done | Four-stage projector flow with prepared questions, optional fault/target, live run, 500 ms route reveal, automatic diagnosis, streamed fixes, reset, full-run, and compare actions. Browser checks left: timing and distance readability. |
 | f09 Polish and real API | pending | |
 
 ## f00 Foundation
@@ -68,3 +68,10 @@
 - Decisions: bars are semantic links so keyboard and pointer users get identical drill-downs; counts use native hover titles while percentages stay visible.
 - Validation: `npm run build` passed (existing non-failing bundle-size warning).
 - Left for browser verification: hover count discoverability, bar-label truncation, and the 900px single-column breakpoint.
+
+## f08 Live lab
+
+- Files changed: Live lab page and app route.
+- Decisions: reuse the existing live-run, run, diagnosis, repair-job, route, and tape contracts; keep presentation timing local to the lab; prepared mock run reveals one step every 500 ms.
+- Validation: `npm run build` passed (existing non-failing bundle-size warning).
+- Left for browser verification: complete loop under 60 seconds, projector readability at four meters, control spacing, and streamed node/fix timing.

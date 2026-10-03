@@ -8,6 +8,7 @@ import RunDetailPage from "./pages/RunDetailPage";
 import ComparePage from "./pages/ComparePage";
 import EvaluationPage from "./pages/EvaluationPage";
 import FleetPage from "./pages/FleetPage";
+import LiveLabPage from "./pages/LiveLabPage";
 
 const Placeholder = ({ title }: { title: string }) => (
   <div className="mx-auto max-w-[1440px] px-6 py-8">
@@ -100,7 +101,7 @@ function Shell() {
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/eval" element={<EvaluationPage />} />
           <Route path="/fleet" element={<FleetPage />} />
-          <Route path="/lab" element={<Placeholder title="Live lab" />} />
+          <Route path="/lab" element={<LiveLabPage />} />
           <Route path="/styleguide" element={<Styleguide />} />
         </Routes>
       </main>
