@@ -156,6 +156,11 @@ export default function Inspector({
                     </div>
                   </div>
                 ))}
+                {!item.reasons.length && (
+                  <p className="text-sm text-graphite">
+                    No explanation reasons were returned for this prediction.
+                  </p>
+                )}
               </div>
               <Popover
                 trigger={

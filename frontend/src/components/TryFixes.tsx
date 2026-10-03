@@ -47,6 +47,8 @@ export default function TryFixes({
   } | null;
   const attempts = result?.attempts ?? [];
   const done = job.data?.status === "completed";
+  const failed = job.data?.status === "failed";
+  const settled = done || failed;
   return (
     <Drawer open={open} title="Try fixes" onClose={onClose}>
       <p className="mb-6 text-sm text-graphite">
@@ -109,7 +111,7 @@ export default function TryFixes({
                       </div>
                     </div>
                   ))}
-                {!done && index === 0 && (
+                {!settled && index === 0 && (
                   <p className="flex items-center gap-2 text-sm text-graphite">
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                     Trying fixes…
@@ -120,7 +122,17 @@ export default function TryFixes({
           </li>
         ))}
       </ol>
-      {done && result?.repaired ? (
+      {failed ? (
+        <div className="mt-6 rounded-panel bg-caution-tint p-4">
+          <p>
+            The repair job failed before it could finish. Try again after the
+            API is ready, or edit a step manually.
+          </p>
+          <Button className="mt-4" onClick={onEdit}>
+            Edit a step manually
+          </Button>
+        </div>
+      ) : done && result?.repaired ? (
         <div className="mt-6 rounded-panel bg-normal-tint p-4">
           <p className="font-medium">
             Fix found: wider search (k=6) on {ranking[0]?.step_key}.

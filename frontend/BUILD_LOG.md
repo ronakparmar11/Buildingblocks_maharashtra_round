@@ -11,7 +11,7 @@
 | f06 Evaluation | done | Judge-readable KPI row, interactive baseline bars, leave-one-out heat table, failure accuracy, proof cost, fix rates, method details, and screen-reader data fallbacks. Browser checks left: projector labels and chart animation. |
 | f07 Fleet | done | Generated fleet headline, sorted step/reason bars with hover counts, injected-failure table, Runs drill-down URLs, real mock cause filtering, and all data states. Browser checks left: hover and mobile layout. |
 | f08 Live lab | done | Four-stage projector flow with prepared questions, optional fault/target, live run, 500 ms route reveal, automatic diagnosis, streamed fixes, reset, full-run, and compare actions. Browser checks left: timing and distance readability. |
-| f09 Polish and real API | done | Part A complete: state/accessibility/copy audit, static styleguide tokens, visible Fleet filters, warning-free chunk split, lint/build, projector and wide route audit, hero and Live lab interaction checks. Part B intentionally skipped. |
+| f09 Polish and real API | done | Parts A and B complete: quality audit, real API contract check, live route walkthrough, resilient run/job polling, and warning-free lint/build. |
 
 ## f00 Foundation
 
@@ -79,7 +79,7 @@
 ## f09 Polish and real API
 
 - Files changed: page empty/loading states, Runs drill-down filter display, static styleguide token classes, semantic `StepKey`, drawer/inspector cleanup, graph attribution, Vite chunk splitting.
-- Decisions: Part A only; mocks remain the development default and Part B was intentionally skipped. React Flow attribution remains visible to avoid a license warning.
+- Decisions: React Flow attribution remains visible to avoid a license warning. Development now uses the real API by default with `VITE_USE_MOCKS=false`.
 - Validation: `npm run lint` passed; `npm run build` passed without warnings; automated browser audit at 1366×768 with 125% zoom and 1920×1080 found no horizontal overflow or console errors and no `/api/` requests.
 - Runs: pass — 304 mock runs, 50-row page, loading geometry, keyboard controls, filters, and projector table checked.
 - Run detail: pass — diagnosis playback completed, selected `q1/retrieve#0`, responsive graph/tape/inspector screenshot checked.
@@ -90,3 +90,12 @@
 - Styleguide: pass — all static color/type tokens and shared component states render.
 - Hero mock audit: pass — all three prepared failures have distinct detailed traces and three-reason diagnoses; generated rows now open matching run/task details instead of falling back to the Scott trace.
 - Remaining manual checks: subjective readability from four meters, reduced-motion emulation, and screen-reader announcement quality.
+
+### Part B — real API
+
+- API identity: pass — workspace uvicorn on port 8000, `demo_mode=false`, model `p10-lambdarank-v1`, and 85 initial runs.
+- Contract mismatches: none between `schemas.py`, `07-API.md`, and `src/api/types.ts`. `/eval` is intentionally artifact-shaped and currently has no evaluated rows; Evaluation and Fleet render their empty states.
+- Frontend fixes: removed fabricated yes/no answers from Compare, added an empty-reasons explanation, humanized backend fault enums, retried transient post-create run 404s, surfaced Live Lab failures, stopped polling failed jobs, distinguished repaired/no-fix/failed results, and removed the mock-only winning run ID.
+- Browser validation: Runs filters and reload persistence, real detail/diagnosis, real comparison, Evaluation, Fleet, Live Lab, Styleguide, and 1366px/125%-equivalent overflow checks passed.
+- Backend findings (not changed): the first uncached diagnosis can return 422 because rank items include forbidden `idx`; subsequent cached diagnosis responses conform. Test-split tasks currently have no injectable fault targets. A live run stopped on Gemini 429 quota exhaustion, and its repair job remained running at 10%, so a successful real fix loop could not be completed.
+- Validation: `npm run lint` and `npm run build` passed without warnings.

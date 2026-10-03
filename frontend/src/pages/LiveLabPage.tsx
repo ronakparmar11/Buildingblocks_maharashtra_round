@@ -26,6 +26,12 @@ import {
 const failureNames: Record<string, string> = {
   distractor_retrieval: "Distractor retrieval",
   wrong_extraction: "Wrong extraction",
+  PLAN_CORRUPT: "Plan corruption",
+  BAD_QUERY: "Bad query",
+  DISTRACTOR_RETRIEVAL: "Distractor retrieval",
+  TRUNCATED_CONTEXT: "Truncated context",
+  WRONG_EXTRACTION: "Wrong extraction",
+  HALLUCINATED_SYNTHESIS: "Hallucinated synthesis",
 };
 const StepNumber = ({
   number,
@@ -94,13 +100,16 @@ export default function LiveLabPage() {
   };
   const runDone = Boolean(run.data && reveal >= run.data.steps.length - 1);
   const ranking = runDone ? (diagnosis.data?.ranking ?? []) : [];
-  const attempts =
-    (
-      job.data?.result as unknown as {
-        attempts?: RepairAttemptResponse[];
-      } | null
-    )?.attempts ?? [];
-  const fixed = job.data?.status === "completed";
+  const jobResult = job.data?.result as unknown as {
+    repaired?: boolean;
+    winning_run_id?: string | null;
+    attempts?: RepairAttemptResponse[];
+  } | null;
+  const attempts = jobResult?.attempts ?? [];
+  const completed = job.data?.status === "completed";
+  const failed = job.data?.status === "failed";
+  const settled = completed || failed;
+  const repaired = completed && Boolean(jobResult?.repaired);
   if (tasks.isLoading)
     return <div className="space-y-5 p-6"><Skeleton className="h-8 w-36"/><div className="grid grid-cols-2 gap-6"><Skeleton className="h-40"/><Skeleton className="h-40"/></div></div>;
   if (tasks.isError) return <ErrorState onRetry={() => tasks.refetch()} />;
@@ -190,6 +199,11 @@ export default function LiveLabPage() {
           Run the agent
         </Button>
       </div>
+      {run.isError && (
+        <div className="mt-5">
+          <ErrorState onRetry={() => run.refetch()} />
+        </div>
+      )}
       {run.data && (
         <section className="mt-6 border-y border-rule bg-panel">
           <div className="flex flex-wrap items-center gap-4 p-5">
@@ -248,12 +262,30 @@ export default function LiveLabPage() {
           </div>
         </section>
       )}
+      {runDone && diagnosis.isError && (
+        <section className="mt-6 flex gap-4 border-b border-rule bg-panel p-5">
+          <StepNumber number={3} state="active" />
+          <div>
+            <h2 className="heading text-lg">Couldn’t find the cause</h2>
+            <p className="mt-2 text-sm text-graphite">
+              The API could not diagnose this run. Open the full run for its
+              recorded steps, or try again after the model is ready.
+            </p>
+          </div>
+        </section>
+      )}
       {startedFixes && (
         <section className="mt-4 flex gap-4 border-b border-rule bg-panel p-5">
-          <StepNumber number={4} state={fixed ? "done" : "active"} />
+          <StepNumber number={4} state={settled ? "done" : "active"} />
           <div className="flex-1">
             <h2 className="heading text-lg">
-              {fixed ? "Fix found: wider search." : "Trying fixes"}
+              {failed
+                ? "Fix attempt failed"
+                : repaired
+                  ? "Fix found"
+                  : completed
+                    ? "No fix found"
+                    : "Trying fixes"}
             </h2>
             <div className="mt-3 space-y-2">
               {attempts.map((attempt) => (
@@ -278,16 +310,24 @@ export default function LiveLabPage() {
                   <StatChip>{attempt.n_reused} reused</StatChip>
                 </div>
               ))}
-              {!fixed && (
+              {!settled && (
                 <p className="flex items-center gap-2 text-graphite">
                   <LoaderCircle className="h-4 w-4 animate-spin" />
                   Trying the top likely causes…
                 </p>
               )}
             </div>
-            {fixed && (
+            {failed && (
+              <p className="mt-4 text-sm text-graphite">
+                The repair job stopped before it could finish. Try again after
+                the API is ready.
+              </p>
+            )}
+            {repaired && jobResult?.winning_run_id && (
               <div className="mt-4 flex gap-3">
-                <Link to={`/compare?a=${runId}&b=r_scott_fixed`}>
+                <Link
+                  to={`/compare?a=${runId}&b=${jobResult.winning_run_id}`}
+                >
                   <Button variant="ink">Compare</Button>
                 </Link>
                 <Link

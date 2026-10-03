@@ -96,7 +96,7 @@ export default function ComparePage() {
           </p>
           <div className="mt-3 flex items-center gap-3">
             <OutcomeChip outcome={data.a.outcome} />
-            <span>Got “{data.a.outcome === "pass" ? "yes" : "no"}”</span>
+            <span>{data.a.n_steps} steps</span>
           </div>
         </div>
         <div className="h-px bg-ink" />
@@ -106,7 +106,7 @@ export default function ComparePage() {
           </p>
           <div className="mt-3 flex items-center gap-3">
             <OutcomeChip outcome={data.b.outcome} />
-            <span>Got “{data.b.outcome === "pass" ? "yes" : "no"}”</span>
+            <span>{data.b.n_steps} steps</span>
           </div>
         </div>
       </div>
