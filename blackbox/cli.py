@@ -146,7 +146,11 @@ def run_clean(
             return
 
         completed_task_ids = set(
-            session.exec(select(Run.task_id).where(Run.origin == "clean")).all()
+            session.exec(
+                select(Run.task_id).where(
+                    Run.origin == "clean", Run.outcome.in_(("pass", "fail"))
+                )
+            ).all()
         )
         pending = [
             task for task in list_tasks(session) if task.task_id not in completed_task_ids
