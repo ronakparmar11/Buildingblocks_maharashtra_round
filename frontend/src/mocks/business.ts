@@ -75,6 +75,9 @@ export const workspaces: WorkspaceSummary[] = [
 export const notifications: NotificationSummary[] = [
   { notification_id: "mail_1", workspace: "nimbu", rule_kind: "incident_opened", incident_id: incidents[0].incident_id, recipients: ["support-ai@nimbu.local"], subject: "New incident: refund questions answered wrong (14 conversations)", status: "sent", error: null, created_at: iso(0.3), sent_at: iso(0.3) },
   { notification_id: "mail_2", workspace: "nimbu", rule_kind: "daily_digest", incident_id: null, recipients: ["support-ai@nimbu.local"], subject: "Daily summary for Nimbu Living support: 4 open incidents, ₹12,150 estimated cost", status: "sent", error: null, created_at: iso(8), sent_at: iso(8) },
+  { notification_id: "mail_3", workspace: "nimbu", rule_kind: "failure_rate", incident_id: null, recipients: ["support-ai@nimbu.local"], subject: "Failure rate alert: 24% of Nimbu conversations answered wrong", status: "throttled", error: null, created_at: iso(9), sent_at: null },
+  { notification_id: "mail_4", workspace: "nimbu", rule_kind: "fix_verified", incident_id: incidents[0].incident_id, recipients: ["support-ai@nimbu.local"], subject: "Fix verified: refund questions answered wrong", status: "queued", error: null, created_at: iso(10), sent_at: null },
+  { notification_id: "mail_5", workspace: "nimbu", rule_kind: "incident_resolved", incident_id: incidents[0].incident_id, recipients: ["support-ai@nimbu.local"], subject: "Incident resolved: refund questions answered wrong", status: "failed", error: "Connection refused", created_at: iso(11), sent_at: null },
 ];
 
 export const recipients: RecipientResponse[] = [

@@ -10,7 +10,7 @@ import {
   useParams,
 } from "react-router-dom";
 import { useHealth } from "./api/hooks";
-import { EmptyState, Popover } from "./components/ui";
+import { Popover } from "./components/ui";
 import {
   useWorkspace,
   workspaceDetails,
@@ -25,19 +25,13 @@ import LiveLabPage from "./pages/LiveLabPage";
 import OverviewPage from "./pages/OverviewPage";
 import IncidentsPage from "./pages/IncidentsPage";
 import IncidentDetailPage from "./pages/IncidentDetailPage";
+import SettingsNotificationsPage from "./pages/SettingsNotificationsPage";
 
 function LegacyRunRedirect() {
   const { id } = useParams();
   const location = useLocation();
   return <Navigate replace to={`${id ? `/conversations/${id}` : "/conversations"}${location.search}`} />;
 }
-
-const Placeholder = ({ title, empty }: { title: string; empty: string }) => (
-  <div className="mx-auto max-w-[1200px] px-6 py-8">
-    <h1 className="heading text-xl">{title}</h1>
-    <EmptyState title={empty} />
-  </div>
-);
 
 function Shell() {
   const health = useHealth();
@@ -157,7 +151,8 @@ function Shell() {
           <Route path="/eval" element={<EvaluationPage />} />
           <Route path="/fleet" element={<Navigate replace to="/" />} />
           <Route path="/lab" element={<LiveLabPage />} />
-          <Route path="/settings" element={<Placeholder title="Settings" empty="No notification settings are available for this workspace." />} />
+          <Route path="/settings" element={<Navigate replace to="/settings/notifications" />} />
+          <Route path="/settings/notifications" element={<SettingsNotificationsPage />} />
           <Route path="/styleguide" element={<Styleguide />} />
         </Routes>
       </main>

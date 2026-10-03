@@ -86,13 +86,13 @@ export const useRecipients = () => {
   return useQuery({ queryKey: ["recipients", workspace], queryFn: () => apiGet<T.RecipientResponse[]>(scoped("/recipients", workspace)) });
 };
 export const useCreateRecipient = () => useMutation({ mutationFn: (body: T.RecipientCreate) => apiPost<T.RecipientResponse>("/recipients", body) });
-export const useUpdateRecipient = (id: string) => useMutation({ mutationFn: (body: T.RecipientUpdate) => apiPatch<T.RecipientResponse>(`/recipients/${id}`, body) });
-export const useDeleteRecipient = (id: string) => useMutation({ mutationFn: () => apiDelete(`/recipients/${id}`) });
+export const useUpdateRecipient = () => useMutation({ mutationFn: ({ id, body }: { id: string; body: T.RecipientUpdate }) => apiPatch<T.RecipientResponse>(`/recipients/${id}`, body) });
+export const useDeleteRecipient = () => useMutation({ mutationFn: (id: string) => apiDelete(`/recipients/${id}`) });
 export const useRules = () => {
   const { workspace } = useWorkspace();
   return useQuery({ queryKey: ["rules", workspace], queryFn: () => apiGet<T.RuleResponse[]>(scoped("/rules", workspace)) });
 };
-export const useUpdateRule = (id: string) => useMutation({ mutationFn: (body: T.RuleUpdate) => apiPut<T.RuleResponse>(`/rules/${id}`, body) });
+export const useUpdateRule = () => useMutation({ mutationFn: ({ id, body }: { id: string; body: T.RuleUpdate }) => apiPut<T.RuleResponse>(`/rules/${id}`, body) });
 export const useBusinessSettings = () => {
   const { workspace } = useWorkspace();
   return useQuery({ queryKey: ["business-settings", workspace], queryFn: () => apiGet<T.BusinessSettingsResponse>(scoped("/settings/business", workspace)) });

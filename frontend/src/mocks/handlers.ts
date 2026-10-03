@@ -115,7 +115,11 @@ export async function mockRequest<T>(
     const item = notifications.find((entry) => entry.notification_id === previewMatch[1]) ?? notifications[0];
     return { subject: item.subject, html: `<h1>${item.subject}</h1><p>Nimbu Living support notification.</p>`, text: `${item.subject}\n\nNimbu Living support notification.` } as T;
   }
-  if (pathname === "/notifications/digest" && method === "POST") return { notification_id: `mail_${Date.now()}` } as T;
+  if (pathname === "/notifications/digest" && method === "POST") {
+    const notificationId = `mail_${Date.now()}`;
+    notifications.unshift({ notification_id: notificationId, workspace, rule_kind: "daily_digest", incident_id: null, recipients: recipients.filter((item) => item.active).map((item) => item.email), subject: "Daily summary for Nimbu Living support: 4 open incidents, ₹12,150 estimated cost", status: "queued", error: null, created_at: new Date().toISOString(), sent_at: null });
+    return { notification_id: notificationId } as T;
+  }
   if (pathname === "/recipients" && method === "GET") return (workspace === "nimbu" ? recipients : []) as T;
   if (pathname === "/recipients" && method === "POST") {
     const request = body as RecipientCreate;
@@ -136,7 +140,11 @@ export async function mockRequest<T>(
     Object.assign(item, body);
     return item as T;
   }
-  if (recipientMatch && method === "DELETE") return undefined as T;
+  if (recipientMatch && method === "DELETE") {
+    const index = recipients.findIndex((entry) => entry.recipient_id === recipientMatch[1]);
+    if (index >= 0) recipients.splice(index, 1);
+    return undefined as T;
+  }
   if (pathname === "/rules" && method === "GET") return (workspace === "nimbu" ? rules : []) as T;
   const ruleMatch = pathname.match(/^\/rules\/([^/]+)$/);
   if (ruleMatch && method === "PUT") {
