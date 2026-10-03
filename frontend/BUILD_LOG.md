@@ -8,7 +8,7 @@
 | f03 Inspector | done | Reusable inspector with ranked header, Why reasons/evidence/contributions, blast count, passage-aware I/O, State reconstruction, empty state, and responsive bottom sheet. Browser checks left: focus order and long-passage expansion. |
 | f04 Replay and fixes | done | Editable/validated replay, blast-radius graph preview, pass/fail result panel, progressive three-attempt fixes job, success/failure states, and focus-trapped drawer. Browser checks left: job timing, focus return, graph pulse/preview feel. |
 | f05 Compare | done | Outcome comparison, generated divergence summary, compact status route, data-dependent filter, expandable first word diff and side-by-side JSON, plus missing/loading/error states. Browser checks left: compact framing and narrow table. |
-| f06 Evaluation | pending | |
+| f06 Evaluation | done | Judge-readable KPI row, interactive baseline bars, leave-one-out heat table, failure accuracy, proof cost, fix rates, method details, and screen-reader data fallbacks. Browser checks left: projector labels and chart animation. |
 | f07 Fleet | pending | |
 | f08 Live lab | pending | |
 | f09 Polish and real API | pending | |
@@ -54,3 +54,10 @@
 - Decisions: reconstruct run B route directly from aligned compare rows; comparisons with eight or fewer rows default to All steps, larger comparisons to Changed only.
 - Validation: `npm run build` passed (existing non-failing chunk-size warning).
 - Left for browser verification: 180px graph fit, first-difference expansion, JSON columns, and narrow viewport table behavior.
+
+## f06 Evaluation
+
+- Files changed: Evaluation page, expanded internally consistent mock evaluation payload, app route.
+- Decisions: Recharts only for axis-based comparisons; dense leave-one-out evidence stays an HTML table; every chart has an accessible title and hidden data table.
+- Validation: `npm run build` passed (non-failing bundle-size warning increased after Recharts).
+- Left for browser verification: 1366×768 at 125% zoom, bar label overlap, 150 ms click animation, and single-column breakpoint.
