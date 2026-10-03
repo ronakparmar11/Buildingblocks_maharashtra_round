@@ -35,6 +35,7 @@ from blackbox.llm.groq import GroqLLM
 from blackbox.model.evaluate import evaluate
 from blackbox.model.predict import diagnose
 from blackbox.model.train import train_model
+from blackbox.repair.repair import repair as repair_run
 from blackbox.replay.compare import compare as compare_runs
 from blackbox.replay.engine import replay as replay_run
 from blackbox.sdk.cassette import Cassette as CassetteStore
@@ -516,8 +517,9 @@ def train_command() -> None:
 def eval_command(
     judge_limit: int = typer.Option(120, "--judge-limit", min=0),
     no_lofo: bool = typer.Option(False, "--no-lofo"),
+    repair: bool = typer.Option(False, "--repair"),
 ) -> None:
-    result = evaluate(judge_limit=judge_limit, lofo=not no_lofo)
+    result = evaluate(judge_limit=judge_limit, lofo=not no_lofo, repair=repair)
     table = Table("Set", "Method", "Top-1", "Top-3", "MRR", "Mean idx error")
     for row in result["tables"]["baselines"]:
         table.add_row(
@@ -528,7 +530,16 @@ def eval_command(
             f"{row['mrr']:.3f}",
             f"{row['mean_idx_error']:.2f}",
         )
-    Console().print(table)
+    console = Console()
+    console.print(table)
+    if repair:
+        metrics = result["repair"]
+        console.print(
+            f"[bold]Repair[/bold] top-1 {metrics['success_top_1']:.1%}  "
+            f"top-3 {metrics['success_top_3']:.1%}  "
+            f"avg candidates {metrics['avg_candidates']:.2f}  "
+            f"avg reused {metrics['avg_pct_reused']:.1%}"
+        )
 
 
 @app.command("diagnose")
@@ -564,9 +575,44 @@ def diagnose_command(run_id: str) -> None:
     )
 
 
-@app.command()
-def repair() -> None:
-    _not_implemented()
+@app.command("repair")
+def repair_command(
+    run_id: str,
+    top_k: int = typer.Option(3, "--top-k", min=1, max=3),
+    max_workers: int = typer.Option(4, "--max-workers", min=1),
+) -> None:
+    try:
+        result = repair_run(run_id, top_k=top_k, max_workers=max_workers)
+    except ValueError as error:
+        raise typer.BadParameter(str(error)) from error
+    table = Table(
+        "Step",
+        "Strategy",
+        "Outcome",
+        "Run",
+        "Executed",
+        "Reused",
+        "Tokens",
+    )
+    for attempt in result.attempts:
+        table.add_row(
+            attempt.step_key,
+            attempt.strategy,
+            attempt.outcome,
+            attempt.run_id,
+            str(attempt.n_executed),
+            f"{attempt.n_reused} ({attempt.pct_reused:.0%})",
+            str(attempt.tokens_total),
+        )
+    console = Console()
+    console.print(table)
+    if result.repaired:
+        console.print(
+            f"[bold green]Repaired[/bold green] with {result.winning_step_key}; "
+            f"winning run {result.winning_run_id}."
+        )
+    else:
+        console.print("[bold red]No candidate repaired the run.[/bold red]")
 
 
 @app.command()

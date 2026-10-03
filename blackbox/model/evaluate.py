@@ -29,9 +29,11 @@ from blackbox.model.train import (
     ranking_metrics,
     train_model,
 )
+from blackbox.repair.repair import repair as repair_run
 from blackbox.sdk.cassette import Cassette
 from blackbox.store.db import get_session
 from blackbox.store.models import Label, Run, Step, Task
+from blackbox.store.repo import get_predictions
 
 
 def _groups(metadata: pd.DataFrame) -> list[int]:
@@ -196,6 +198,51 @@ def _replay_and_bisect_metrics() -> tuple[dict[str, float], dict[str, float]]:
     return replay, bisect
 
 
+def _repair_metrics(limit: int = 100) -> dict[str, float]:
+    capped_limit = max(0, min(limit, 100))
+    with get_session() as session:
+        run_ids = list(
+            session.exec(
+                select(Run.run_id)
+                .join(Task, Task.task_id == Run.task_id)
+                .join(Label, Label.run_id == Run.run_id)
+                .where(
+                    Run.outcome == "fail",
+                    Run.origin.in_(("clean", "fault", "organic")),
+                    Task.split == "test",
+                )
+                .order_by(Run.created_at)
+                .limit(capped_limit)
+            ).all()
+        )
+    results = [repair_run(run_id, top_k=3) for run_id in run_ids]
+    top_1_successes = 0
+    top_3_successes = 0
+    reused: list[float] = []
+    with get_session() as session:
+        for result in results:
+            rank_by_step = {
+                prediction.step_key: prediction.rank
+                for prediction in get_predictions(session, result.run_id)
+            }
+            winning_rank = rank_by_step.get(result.winning_step_key or "")
+            top_1_successes += winning_rank == 1
+            top_3_successes += winning_rank is not None and winning_rank <= 3
+            reused.extend(attempt.pct_reused for attempt in result.attempts)
+    count = len(results)
+    return {
+        "success_top_1": top_1_successes / count if count else 0.0,
+        "success_top_3": top_3_successes / count if count else 0.0,
+        "avg_candidates": float(
+            np.mean([len(result.attempts) for result in results])
+        )
+        if results
+        else 0.0,
+        "avg_pct_reused": float(np.mean(reused)) if reused else 0.0,
+        "n_runs": float(count),
+    }
+
+
 def _markdown_table(rows: list[dict[str, Any]], columns: Sequence[str]) -> str:
     header = "| " + " | ".join(columns) + " |"
     separator = "| " + " | ".join("---" for _ in columns) + " |"
@@ -211,7 +258,9 @@ def _markdown_table(rows: list[dict[str, Any]], columns: Sequence[str]) -> str:
     return "\n".join([header, separator, *body])
 
 
-def evaluate(*, judge_limit: int = 120, lofo: bool = True) -> dict[str, Any]:
+def evaluate(
+    *, judge_limit: int = 120, lofo: bool = True, repair: bool = False
+) -> dict[str, Any]:
     holdouts = set(fault_types_from_settings())
     feature_started = time.perf_counter()
     features, labels, _, metadata = build_dataset("test", include_organic=True)
@@ -281,7 +330,7 @@ def evaluate(*, judge_limit: int = 120, lofo: bool = True) -> dict[str, Any]:
         "tables": {"baselines": baseline_rows, "lofo": lofo_rows, "per_fault": per_fault},
         "replay": replay,
         "bisect": bisect,
-        "repair": {"status": "pending_p12"},
+        "repair": _repair_metrics() if repair else {"status": "not_run"},
     }
     artifact_dir = Path(get_settings().ARTIFACTS_DIR)
     artifact_dir.mkdir(parents=True, exist_ok=True)
