@@ -12,6 +12,8 @@ from blackbox.config import get_settings
 from blackbox.corpus.embed import build_embeddings
 from blackbox.corpus.hotpot import build_hotpot_corpus
 from blackbox.corpus.retriever import get_retriever
+from blackbox.faults.inject import run_with_fault
+from blackbox.faults.targets import applicable_targets, latest_clean_run
 from blackbox.llm.base import LLMClient
 from blackbox.llm.gemini import GeminiLLM
 from blackbox.llm.groq import GroqLLM
@@ -26,9 +28,11 @@ app = typer.Typer(help="Black Box agent flight recorder.")
 db_app = typer.Typer(help="Initialize and inspect the Black Box database.")
 corpus_app = typer.Typer(help="Build and search the retrieval corpus.")
 run_app = typer.Typer(help="Execute and inspect agent runs.")
+faults_app = typer.Typer(help="List and inject realistic agent faults.")
 app.add_typer(db_app, name="db")
 app.add_typer(corpus_app, name="corpus")
 app.add_typer(run_app, name="run")
+app.add_typer(faults_app, name="faults")
 
 TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
@@ -180,9 +184,40 @@ def run_show(run_id: str) -> None:
         _print_run(session, run)
 
 
-@app.command()
-def faults() -> None:
-    _not_implemented()
+@faults_app.command("list-targets")
+def faults_list_targets(task_id: str = typer.Option(..., "--task-id")) -> None:
+    init_db()
+    with get_session() as session:
+        task = get_task(session, task_id)
+        if task is None:
+            raise typer.BadParameter(f"Unknown task id: {task_id}")
+        clean_run = latest_clean_run(session, task_id)
+        if clean_run is None:
+            raise typer.BadParameter(f"Task has no passing clean run: {task_id}")
+        table = Table("Fault type", "Step")
+        for fault_type, step_key in applicable_targets(clean_run):
+            table.add_row(fault_type, step_key)
+        Console().print(table)
+
+
+@faults_app.command("inject")
+def faults_inject(
+    task_id: str = typer.Option(..., "--task-id"),
+    fault_type: str = typer.Option(..., "--type"),
+    step_key: str = typer.Option(..., "--step"),
+    seed: int = typer.Option(42, "--seed"),
+) -> None:
+    init_db()
+    with get_session() as session:
+        task = get_task(session, task_id)
+        if task is None:
+            raise typer.BadParameter(f"Unknown task id: {task_id}")
+    try:
+        run = run_with_fault(task, fault_type, step_key, seed)
+    except ValueError as error:
+        raise typer.BadParameter(str(error)) from error
+    with get_session() as session:
+        _print_run(session, run)
 
 
 @app.command()
