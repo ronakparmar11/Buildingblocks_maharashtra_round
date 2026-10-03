@@ -25,6 +25,7 @@ from blackbox.datagen.pipeline import (
 )
 from blackbox.faults.inject import run_with_fault
 from blackbox.faults.targets import applicable_targets, latest_clean_run
+from blackbox.features.extract import build_dataset
 from blackbox.labeling.bisect import label_fault_run
 from blackbox.labeling.counterfactual import label_organic_run
 from blackbox.llm.base import LLMClient
@@ -46,12 +47,14 @@ run_app = typer.Typer(help="Execute and inspect agent runs.")
 faults_app = typer.Typer(help="List and inject realistic agent faults.")
 label_app = typer.Typer(help="Label failed runs with counterfactual replay.")
 generate_app = typer.Typer(help="Generate clean, fault, and labeled run data.")
+features_app = typer.Typer(help="Build leakage-free step feature datasets.")
 app.add_typer(db_app, name="db")
 app.add_typer(corpus_app, name="corpus")
 app.add_typer(run_app, name="run")
 app.add_typer(faults_app, name="faults")
 app.add_typer(label_app, name="label")
 app.add_typer(generate_app, name="generate")
+app.add_typer(features_app, name="features")
 
 TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
@@ -483,9 +486,17 @@ def generate_status() -> None:
     )
 
 
-@app.command()
-def features() -> None:
-    _not_implemented()
+@features_app.command("build")
+def features_build(split: str = typer.Argument("train")) -> None:
+    settings = get_settings()
+    features, labels, _, _ = build_dataset(split)
+    output_path = Path(settings.ARTIFACTS_DIR) / f"features_{split}.parquet"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    features.to_parquet(output_path, index=False)
+    positive_rate = float(labels.mean()) if len(labels) else 0.0
+    typer.echo(
+        f"Wrote {output_path}: shape={features.shape}, positive_rate={positive_rate:.1%}"
+    )
 
 
 @app.command()
