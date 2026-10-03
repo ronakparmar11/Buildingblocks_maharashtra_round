@@ -227,7 +227,6 @@ export default function ExecutionRoute({
         nodesConnectable={false}
         onNodeClick={(_, node) => onSelect?.(node.id)}
         onPaneClick={() => onSelect?.(null)}
-        proOptions={{ hideAttribution: true }}
       >
         {!compact && <><Background id="minor" variant={BackgroundVariant.Lines} gap={24} size={1} color="#DFE5E8"/><Background id="major" variant={BackgroundVariant.Lines} gap={120} size={1} color="#C9D2D8"/></>}
         {!compact && (

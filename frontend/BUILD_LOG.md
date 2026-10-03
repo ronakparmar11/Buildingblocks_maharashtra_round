@@ -11,7 +11,7 @@
 | f06 Evaluation | done | Judge-readable KPI row, interactive baseline bars, leave-one-out heat table, failure accuracy, proof cost, fix rates, method details, and screen-reader data fallbacks. Browser checks left: projector labels and chart animation. |
 | f07 Fleet | done | Generated fleet headline, sorted step/reason bars with hover counts, injected-failure table, Runs drill-down URLs, real mock cause filtering, and all data states. Browser checks left: hover and mobile layout. |
 | f08 Live lab | done | Four-stage projector flow with prepared questions, optional fault/target, live run, 500 ms route reveal, automatic diagnosis, streamed fixes, reset, full-run, and compare actions. Browser checks left: timing and distance readability. |
-| f09 Polish and real API | pending | |
+| f09 Polish and real API | done | Part A complete: state/accessibility/copy audit, static styleguide tokens, visible Fleet filters, warning-free chunk split, lint/build, projector and wide route audit, hero and Live lab interaction checks. Part B intentionally skipped. |
 
 ## f00 Foundation
 
@@ -75,3 +75,17 @@
 - Decisions: reuse the existing live-run, run, diagnosis, repair-job, route, and tape contracts; keep presentation timing local to the lab; prepared mock run reveals one step every 500 ms.
 - Validation: `npm run build` passed (existing non-failing bundle-size warning).
 - Left for browser verification: complete loop under 60 seconds, projector readability at four meters, control spacing, and streamed node/fix timing.
+
+## f09 Polish and real API
+
+- Files changed: page empty/loading states, Runs drill-down filter display, static styleguide token classes, semantic `StepKey`, drawer/inspector cleanup, graph attribution, Vite chunk splitting.
+- Decisions: Part A only; mocks remain the development default and Part B was intentionally skipped. React Flow attribution remains visible to avoid a license warning.
+- Validation: `npm run lint` passed; `npm run build` passed without warnings; automated browser audit at 1366×768 with 125% zoom and 1920×1080 found no horizontal overflow or console errors and no `/api/` requests.
+- Runs: pass — 302 mock runs, 50-row page, loading geometry, keyboard controls, filters, and projector table checked.
+- Run detail: pass — diagnosis playback completed, selected `q1/retrieve#0`, responsive graph/tape/inspector screenshot checked.
+- Compare: pass — outcomes, compact route, first diff, and console-clean semantics checked.
+- Evaluation: pass — KPI/chart/table layout and labels checked at projector and wide sizes.
+- Fleet: pass — responsive layout and cause drill-down behavior checked.
+- Live lab: pass — prepared failure loop reached “Fix found” well under 60 seconds.
+- Styleguide: pass — all static color/type tokens and shared component states render.
+- Remaining manual checks: subjective readability from four meters, reduced-motion emulation, and screen-reader announcement quality.

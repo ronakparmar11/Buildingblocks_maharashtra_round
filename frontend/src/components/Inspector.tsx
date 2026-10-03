@@ -55,15 +55,16 @@ export default function Inspector({
   const item = ranking.find((rank) => rank.step_key === step?.step_key);
   const blast = useBlastRadius(runId, step?.step_key);
   const replay = useReplay(runId);
+  const resetReplay = replay.reset;
   useEffect(() => {
     if (!userChoseTab.current) setTab(item ? "Why" : "I/O");
   }, [item, step?.step_key]);
   useEffect(() => {
     setEditor(JSON.stringify(step?.output ?? {}, null, 2));
-    replay.reset();
+    resetReplay();
     setPreview(false);
     onHighlight?.();
-  }, [step?.step_key]);
+  }, [step?.step_key, step?.output, resetReplay, onHighlight]);
   useEffect(() => {
     if (replaySignal) {
       setTab("Replay");

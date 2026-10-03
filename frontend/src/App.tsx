@@ -10,14 +10,6 @@ import EvaluationPage from "./pages/EvaluationPage";
 import FleetPage from "./pages/FleetPage";
 import LiveLabPage from "./pages/LiveLabPage";
 
-const Placeholder = ({ title }: { title: string }) => (
-  <div className="mx-auto max-w-[1440px] px-6 py-8">
-    <h1 className="heading text-xl">{title}</h1>
-    <p className="mt-2 text-graphite">
-      This page is built in its dedicated phase.
-    </p>
-  </div>
-);
 function Shell() {
   const health = useHealth();
   const navigate = useNavigate();

@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { useEval } from "../api/hooks";
 import {
+  EmptyState,
   ErrorState,
   KpiRow,
   SegmentedControl,
@@ -55,6 +56,8 @@ export default function EvaluationPage() {
   if (result.isError || !result.data)
     return <ErrorState onRetry={() => result.refetch()} />;
   const data = result.data as unknown as EvalView;
+  if (!data.baselines?.length)
+    return <EmptyState title="No evaluation results are available yet." />;
   const factor =
     set === "Seen failure types"
       ? 1

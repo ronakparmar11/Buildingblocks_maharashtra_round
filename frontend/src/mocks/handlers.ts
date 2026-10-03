@@ -8,7 +8,6 @@ import type {
   JobCreatedResponse,
   JobResponse,
   LiveRunResponse,
-  ReplayRequest,
   ReplayResponse,
   RunDetailResponse,
   RunListResponse,
@@ -26,6 +25,7 @@ export async function mockRequest<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
+  void body;
   await wait();
   const url = new URL(path, "http://mock");
   const pathname = url.pathname.replace(/^\/api/, "");

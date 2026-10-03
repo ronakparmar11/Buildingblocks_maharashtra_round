@@ -86,15 +86,18 @@ export function StepKey({
   value: string;
   copy?: boolean;
 }) {
+  const className = "inline-block max-w-full truncate rounded-chip bg-rule-soft px-2 py-1 font-mono text-xs text-ink";
+  if (!copy)
+    return <span title={value} className={className}>{value}</span>;
   return (
     <button
       type="button"
-      title={copy ? "Copy step key" : value}
-      onClick={() => copy && navigator.clipboard.writeText(value)}
-      className="max-w-full truncate rounded-chip bg-rule-soft px-2 py-1 font-mono text-xs text-ink"
+      title="Copy step key"
+      onClick={() => navigator.clipboard.writeText(value)}
+      className={className}
     >
       {value}
-      {copy && <Copy className="ml-1 inline h-3 w-3" />}
+      <Copy className="ml-1 inline h-3 w-3" />
     </button>
   );
 }

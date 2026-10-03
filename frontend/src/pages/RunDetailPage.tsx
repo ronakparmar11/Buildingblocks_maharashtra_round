@@ -67,7 +67,6 @@ export default function RunDetailPage() {
     return <ErrorState onRetry={() => run.refetch()} />;
   const data = run.data;
   const ranking = diagnosed ? (diagnosis.data?.ranking ?? []) : [];
-  const top = diagnosis.data?.ranking[0];
   const back = location.state?.from ?? "/";
   return (
     <div className="min-h-[calc(100vh-56px)] bg-paper">
