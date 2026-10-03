@@ -81,7 +81,8 @@ make install
 
 `start.sh` runs the real development stack at `http://127.0.0.1:5173`, with the
 API at `http://127.0.0.1:8000` and Mailpit at `http://127.0.0.1:8025`. It uses
-the configured LLM provider and SQLite database. Install Mailpit with
+the configured LLM provider and Neon Postgres when `DATABASE_URL` is set, with
+SQLite available as a local fallback. Install Mailpit with
 `brew install mailpit` if it is not already available.
 
 For an offline presentation using pre-recorded LLM cassettes, use the separate
@@ -96,4 +97,4 @@ verification command.
 
 ## Tech
 
-Python, FastAPI, SQLite/SQLModel, Gemini, sentence-transformers, LightGBM, SHAP, React, TypeScript, Vite, TanStack Query, React Flow, Recharts, and Tailwind CSS.
+Python, FastAPI, Neon Postgres/SQLModel, Gemini, sentence-transformers, LightGBM, SHAP, React, TypeScript, Vite, TanStack Query, React Flow, Recharts, and Tailwind CSS.

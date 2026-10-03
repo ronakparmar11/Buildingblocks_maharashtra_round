@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = ""
+    DATABASE_URL: str | None = None
+    DATABASE_URL_UNPOOLED: str | None = None
     DB_PATH: str = "data/blackbox.db"
     DATA_DIR: str = "data"
     ARTIFACTS_DIR: str = "artifacts"

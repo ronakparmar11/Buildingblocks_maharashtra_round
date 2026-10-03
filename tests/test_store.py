@@ -3,6 +3,7 @@ from pathlib import Path
 
 from sqlmodel import Session, SQLModel, create_engine
 
+from blackbox.store.db import _create_engine, _normalize_database_url
 from blackbox.store.hashing import sha256_json
 from blackbox.store.models import Label, Run, Step, Task
 from blackbox.store.repo import add_step, create_run, get_run, get_steps, upsert_task
@@ -90,6 +91,17 @@ def test_hashing_is_stable_across_dict_key_order() -> None:
     second = {"nested": {"gamma": [3, 4], "beta": 2}, "alpha": 1}
 
     assert sha256_json(first) == sha256_json(second)
+
+
+def test_postgres_url_selects_psycopg_driver() -> None:
+    database_url = "postgresql://user:password@example.com/database"
+
+    assert _normalize_database_url(database_url).startswith("postgresql+psycopg://")
+    postgres_engine = _create_engine(database_url)
+    try:
+        assert postgres_engine.url.drivername == "postgresql+psycopg"
+    finally:
+        postgres_engine.dispose()
 
 
 def test_sample_fixture_validates_against_models() -> None:

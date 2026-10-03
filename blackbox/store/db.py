@@ -13,8 +13,24 @@ from sqlmodel import Session, SQLModel, create_engine
 from blackbox.config import get_settings
 
 
-def _create_engine() -> Engine:
-    db_path = Path(get_settings().DB_PATH)
+def _normalize_database_url(database_url: str) -> str:
+    if database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql+psycopg://", 1)
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return database_url
+
+
+def _create_engine(database_url: str | None = None) -> Engine:
+    settings = get_settings()
+    selected_url = database_url or settings.DATABASE_URL
+    if selected_url:
+        return create_engine(
+            _normalize_database_url(selected_url),
+            pool_pre_ping=True,
+        )
+
+    db_path = Path(settings.DB_PATH)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     return create_engine(
         f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
@@ -22,10 +38,13 @@ def _create_engine() -> Engine:
 
 
 engine = _create_engine()
+_runtime_engine = engine
 
 
 @event.listens_for(engine, "connect")
 def _set_sqlite_pragmas(dbapi_connection: SQLite3Connection, _: object) -> None:
+    if not isinstance(dbapi_connection, sqlite3.Connection):
+        return
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA synchronous=NORMAL")
@@ -34,6 +53,15 @@ def _set_sqlite_pragmas(dbapi_connection: SQLite3Connection, _: object) -> None:
 
 def init_db() -> None:
     from blackbox.store import models  # noqa: F401
+
+    settings = get_settings()
+    if engine is _runtime_engine and settings.DATABASE_URL_UNPOOLED:
+        schema_engine = _create_engine(settings.DATABASE_URL_UNPOOLED)
+        try:
+            SQLModel.metadata.create_all(schema_engine)
+        finally:
+            schema_engine.dispose()
+        return
 
     SQLModel.metadata.create_all(engine)
 
