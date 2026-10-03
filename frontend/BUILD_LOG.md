@@ -6,7 +6,7 @@
 | f01 Runs page | done | URL-synced filters/search, 50-row pagination, exact five-column table, skeleton/empty/error states, row and j/k keyboard navigation. Browser checks left: projector truncation and filter interaction. |
 | f02 Run detail graph | done | Responsive detail header/facts shell, dagre React Flow route, waypoint states, synchronized FDR tape, ground truth, and reduced-motion-aware diagnosis playback. Browser checks left: fit/pan, hover sync, responsive projector view. |
 | f03 Inspector | done | Reusable inspector with ranked header, Why reasons/evidence/contributions, blast count, passage-aware I/O, State reconstruction, empty state, and responsive bottom sheet. Browser checks left: focus order and long-passage expansion. |
-| f04 Replay and fixes | pending | |
+| f04 Replay and fixes | done | Editable/validated replay, blast-radius graph preview, pass/fail result panel, progressive three-attempt fixes job, success/failure states, and focus-trapped drawer. Browser checks left: job timing, focus return, graph pulse/preview feel. |
 | f05 Compare | pending | |
 | f06 Evaluation | pending | |
 | f07 Fleet | pending | |
@@ -40,3 +40,10 @@
 - Decisions: the user-selected tab persists across steps; only the initial selection chooses Why for ranked steps and I/O otherwise.
 - Validation: `npm run build` passed (existing non-failing chunk-size warning).
 - Left for browser verification: tab focus sequence, bottom-sheet ergonomics, passage clamping/expansion, and copy confirmations.
+
+## f04 Replay and fixes
+
+- Files changed: inspector Replay tab, `TryFixes`, shared Drawer focus behavior, detail graph wiring, progressive mock job handler, ES2022 library typing.
+- Decisions: editor/mutation result stays local to the inspector; blast-radius highlight and drawer state live in the detail page; mock attempts resolve every 900 ms.
+- Validation: `npm run build` passed (existing non-failing chunk-size warning).
+- Left for browser verification: replay loading pulse, exact JSON error wording by browser, streamed timing, focus trap/return, and graph preview appearance.

@@ -5,6 +5,7 @@ import { useDiagnosis, useRun } from "../api/hooks";
 import ExecutionRoute from "../components/ExecutionRoute";
 import FdrTape from "../components/FdrTape";
 import Inspector from "../components/Inspector";
+import TryFixes from "../components/TryFixes";
 import {
   Button,
   ErrorState,
@@ -24,6 +25,9 @@ export default function RunDetailPage() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [revealCount, setRevealCount] = useState(0);
   const [groundTruth, setGroundTruth] = useState(false);
+  const [highlight, setHighlight] = useState<string[]>();
+  const [fixesOpen, setFixesOpen] = useState(false);
+  const [replaySignal, setReplaySignal] = useState(0);
   const frame = useRef(0);
   const play = () => {
     if (!diagnosis.data || !run.data) return;
@@ -111,7 +115,7 @@ export default function RunDetailPage() {
             <div className="flex flex-wrap justify-end gap-2">
               {data.run.parent_run_id && <Button>Compare with original</Button>}
               {data.run.outcome === "fail" && (
-                <Button disabled={!diagnosed}>Try fixes</Button>
+                <Button disabled={!diagnosed} onClick={() => setFixesOpen(true)}>Try fixes</Button>
               )}
               {diagnosed ? (
                 <Button variant="quiet">
@@ -191,6 +195,7 @@ export default function RunDetailPage() {
             ranking={ranking.slice(0, revealCount)}
             selectedKey={hovered ?? selected}
             onSelect={setSelected}
+            highlight={highlight}
             groundTruth={
               groundTruth
                 ? {
@@ -205,7 +210,10 @@ export default function RunDetailPage() {
           runId={data.run.run_id}
           step={data.steps.find((step) => step.step_key === selected)}
           ranking={ranking}
+          totalSteps={data.steps.length}
           onSelect={setSelected}
+          onHighlight={setHighlight}
+          replaySignal={replaySignal}
         />
         <div className="col-span-3 max-[1200px]:col-span-2 max-[900px]:col-span-1">
           <FdrTape
@@ -219,6 +227,7 @@ export default function RunDetailPage() {
           />
         </div>
       </div>
+      <TryFixes open={fixesOpen} onClose={() => setFixesOpen(false)} runId={data.run.run_id} ranking={ranking} onEdit={() => { setFixesOpen(false); setSelected(ranking[0]?.step_key ?? null); setReplaySignal((value) => value + 1); }} />
     </div>
   );
 }
