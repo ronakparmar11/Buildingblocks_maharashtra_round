@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import typer
 from rich.console import Console
+from rich.progress import Progress
 from rich.table import Table
 from sqlalchemy import func
 from sqlmodel import Session, select
@@ -16,6 +17,8 @@ from blackbox.corpus.hotpot import build_hotpot_corpus
 from blackbox.corpus.retriever import get_retriever
 from blackbox.faults.inject import run_with_fault
 from blackbox.faults.targets import applicable_targets, latest_clean_run
+from blackbox.labeling.bisect import label_fault_run
+from blackbox.labeling.counterfactual import label_organic_run
 from blackbox.llm.base import LLMClient
 from blackbox.llm.gemini import GeminiLLM
 from blackbox.llm.groq import GroqLLM
@@ -33,10 +36,12 @@ db_app = typer.Typer(help="Initialize and inspect the Black Box database.")
 corpus_app = typer.Typer(help="Build and search the retrieval corpus.")
 run_app = typer.Typer(help="Execute and inspect agent runs.")
 faults_app = typer.Typer(help="List and inject realistic agent faults.")
+label_app = typer.Typer(help="Label failed runs with counterfactual replay.")
 app.add_typer(db_app, name="db")
 app.add_typer(corpus_app, name="corpus")
 app.add_typer(run_app, name="run")
 app.add_typer(faults_app, name="faults")
+app.add_typer(label_app, name="label")
 
 TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
@@ -305,9 +310,88 @@ def compare_command(run_a_id: str, run_b_id: str) -> None:
     console.print(table)
 
 
-@app.command()
-def label() -> None:
-    _not_implemented()
+def _print_label_summary(labels: list[Label], steps_by_run: dict[str, int]) -> None:
+    labeled = len(labels)
+    verified_rate = sum(label.verified for label in labels) / labeled if labeled else 0.0
+    injection_labels = [
+        label for label in labels if label.matches_injection is not None
+    ]
+    matches_rate = (
+        sum(bool(label.matches_injection) for label in injection_labels)
+        / len(injection_labels)
+        if injection_labels
+        else None
+    )
+    avg_replays = (
+        sum(label.n_replays for label in labels) / labeled if labeled else 0.0
+    )
+    avg_steps = (
+        sum(steps_by_run[label.run_id] for label in labels) / labeled
+        if labeled
+        else 0.0
+    )
+    ratio = avg_replays / avg_steps if avg_steps else 0.0
+    matches_text = f"{matches_rate:.1%}" if matches_rate is not None else "n/a"
+    Console().print(
+        f"[bold]Labeled {labeled}[/bold]; verified {verified_rate:.1%}; "
+        f"matches_injection {matches_text}; avg replays/label {avg_replays:.2f} "
+        f"vs avg steps {avg_steps:.2f} ([cyan]{ratio:.2f}x[/cyan])."
+    )
+
+
+@label_app.command("faults")
+def label_faults(limit: int = typer.Option(20, min=1)) -> None:
+    init_db()
+    with get_session() as session:
+        statement = (
+            select(Run)
+            .join(Fault, Fault.run_id == Run.run_id)
+            .outerjoin(Label, Label.run_id == Run.run_id)
+            .where(Run.outcome == "fail", Label.run_id.is_(None))
+            .order_by(Run.created_at)
+            .limit(limit)
+        )
+        runs = list(session.exec(statement).all())
+    steps_by_run = {run.run_id: run.n_steps for run in runs}
+    labels: list[Label] = []
+    with Progress() as progress:
+        task = progress.add_task("Labeling fault runs", total=len(runs))
+        for run in runs:
+            label = label_fault_run(run.run_id)
+            if label is not None:
+                labels.append(label)
+            progress.advance(task)
+    _print_label_summary(labels, steps_by_run)
+
+
+@label_app.command("organic")
+def label_organic(limit: int = typer.Option(60, min=1)) -> None:
+    init_db()
+    with get_session() as session:
+        statement = (
+            select(Run)
+            .outerjoin(Fault, Fault.run_id == Run.run_id)
+            .outerjoin(Label, Label.run_id == Run.run_id)
+            .where(
+                Run.origin == "clean",
+                Run.outcome == "fail",
+                Fault.run_id.is_(None),
+                Label.run_id.is_(None),
+            )
+            .order_by(Run.created_at)
+            .limit(limit)
+        )
+        runs = list(session.exec(statement).all())
+    steps_by_run = {run.run_id: run.n_steps for run in runs}
+    labels: list[Label] = []
+    with Progress() as progress:
+        task = progress.add_task("Labeling organic runs", total=len(runs))
+        for run in runs:
+            label = label_organic_run(run.run_id)
+            if label is not None:
+                labels.append(label)
+            progress.advance(task)
+    _print_label_summary(labels, steps_by_run)
 
 
 @app.command()
