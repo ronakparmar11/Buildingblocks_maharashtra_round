@@ -4,6 +4,7 @@ import type {
   CompareResponse,
   DiagnosisResponse,
   FleetResponse,
+  GoldenDemoResponse,
   HealthResponse,
   JobCreatedResponse,
   JobResponse,
@@ -54,6 +55,23 @@ export async function mockRequest<T>(
   const url = new URL(path, "http://mock");
   const pathname = url.pathname.replace(/^\/api/, "");
   const workspace = url.searchParams.get("workspace") ?? "hotpot";
+  if (pathname === "/auth/session")
+    return { authenticated: true, email: "blackbox@gmail.com" } as T;
+  if (pathname === "/auth/login")
+    return { authenticated: true, email: "blackbox@gmail.com" } as T;
+  if (pathname === "/auth/logout") return undefined as T;
+  if (pathname === "/demo/golden") {
+    const run = getMockDetail("r_scott_fail");
+    return {
+      run,
+      diagnosis: getMockDiagnosis("r_scott_fail"),
+      repair: {
+        repaired: true,
+        winning_run_id: "r_scott_fixed",
+        attempts: [{ step_key: "synthesize", strategy: "Use only the sub-answers", run_id: "r_scott_fixed", outcome: "pass", n_executed: 1, n_reused: run.steps.length - 1, tokens_total: 171 }],
+      },
+    } as T & GoldenDemoResponse;
+  }
   if (pathname === "/workspaces") return workspaces as T;
   if (pathname === "/overview")
     return (workspace === "nimbu"

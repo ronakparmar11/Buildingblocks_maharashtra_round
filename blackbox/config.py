@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     N_TASKS: int = 300
     BLACKBOX_DEMO_MODE: int = 0
     BLACKBOX_MOCK_API: int = 0
+    DEMO_AUTH_ENABLED: int = 0
+    DEMO_AUTH_EMAIL: str = "blackbox@gmail.com"
+    DEMO_AUTH_PASSWORD: str = "blackbox123"
+    DEMO_AUTH_SECRET: str = "blackbox-local-demo"
     COST_PER_WRONG_ANSWER_INR: int = 450
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025
