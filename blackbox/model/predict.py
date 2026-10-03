@@ -11,6 +11,7 @@ from sqlmodel import select
 from blackbox.config import get_settings
 from blackbox.features.extract import features_for_run
 from blackbox.features.reference import load_reference_stats
+from blackbox.model.explain import explain
 from blackbox.model.train import prepare_features
 from blackbox.store.db import get_session, init_db
 from blackbox.store.models import Prediction, Run, Step, Task
@@ -62,6 +63,15 @@ def diagnose(run_id: str, *, persist: bool = True) -> dict[str, Any]:
             }
             for rank, index in enumerate(order, start=1)
         ]
+        ranking = explain(
+            run_id,
+            ranking,
+            model=model,
+            features=prepared,
+            steps=steps,
+            feature_list=feature_list,
+            reference_stats=stats,
+        )
         if persist:
             existing = list(session.exec(select(Prediction).where(Prediction.run_id == run_id)).all())
             for row in existing:
@@ -74,12 +84,13 @@ def diagnose(run_id: str, *, persist: bool = True) -> dict[str, Any]:
                         score=float(item["score"]),
                         rank=int(item["rank"]),
                         model_version=str(model_meta["version"]),
-                        reasons=[],
+                        reasons=list(item["reasons"]),
                     )
                 )
             session.commit()
     return {
         "run_id": run_id,
+        "model_version": str(model_meta["version"]),
         "ranking": ranking,
         "latency_ms": (time.perf_counter() - started) * 1000.0,
     }
