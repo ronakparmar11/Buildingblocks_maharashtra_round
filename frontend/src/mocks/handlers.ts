@@ -41,11 +41,16 @@ export async function mockRequest<T>(
     const outcome = url.searchParams.get("outcome");
     const origin = url.searchParams.get("origin");
     const q = url.searchParams.get("q")?.toLowerCase();
+    const causeName = url.searchParams.get("cause_name");
     if (outcome) filtered = filtered.filter((run) => run.outcome === outcome);
     if (origin) filtered = filtered.filter((run) => run.origin === origin);
     if (q)
       filtered = filtered.filter((run) =>
         run.question.toLowerCase().includes(q),
+      );
+    if (causeName)
+      filtered = filtered.filter((run) =>
+        run.predicted_culprit?.step_key.includes(causeName),
       );
     const offset = Number(url.searchParams.get("offset") ?? 0);
     const limit = Number(url.searchParams.get("limit") ?? 50);
