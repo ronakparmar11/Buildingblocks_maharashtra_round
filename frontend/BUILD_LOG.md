@@ -5,7 +5,7 @@
 | f00 Foundation | done | Light investigation-board tokens; exact API types and hooks; deterministic mock API; app shell, shortcuts, shared UI, and styleguide. Replaced the legacy dark shell. Browser checks left: styleguide states, keyboard traversal, no mock network requests, projector widths. |
 | f01 Runs page | done | URL-synced filters/search, 50-row pagination, exact five-column table, skeleton/empty/error states, row and j/k keyboard navigation. Browser checks left: projector truncation and filter interaction. |
 | f02 Run detail graph | done | Responsive detail header/facts shell, dagre React Flow route, waypoint states, synchronized FDR tape, ground truth, and reduced-motion-aware diagnosis playback. Browser checks left: fit/pan, hover sync, responsive projector view. |
-| f03 Inspector | pending | |
+| f03 Inspector | done | Reusable inspector with ranked header, Why reasons/evidence/contributions, blast count, passage-aware I/O, State reconstruction, empty state, and responsive bottom sheet. Browser checks left: focus order and long-passage expansion. |
 | f04 Replay and fixes | pending | |
 | f05 Compare | pending | |
 | f06 Evaluation | pending | |
@@ -33,3 +33,10 @@
 - Decisions: detail page owns the shared graph/tape selection; playback reveals ranking by execution index with `requestAnimationFrame` and becomes instant for reduced motion.
 - Validation: `npm run build` passed (Vite reports a non-failing chunk-size warning).
 - Left for browser verification: graph fit and controls, tape hover sync, playback/pan feel, replay node styling, reduced motion, and responsive widths.
+
+## f03 Inspector
+
+- Files changed: reusable `Inspector`, run detail integration; graph files mechanically formatted for maintainability.
+- Decisions: the user-selected tab persists across steps; only the initial selection chooses Why for ranked steps and I/O otherwise.
+- Validation: `npm run build` passed (existing non-failing chunk-size warning).
+- Left for browser verification: tab focus sequence, bottom-sheet ergonomics, passage clamping/expansion, and copy confirmations.
