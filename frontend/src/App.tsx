@@ -29,6 +29,7 @@ import IncidentsPage from "./pages/IncidentsPage";
 import IncidentDetailPage from "./pages/IncidentDetailPage";
 import SettingsNotificationsPage from "./pages/SettingsNotificationsPage";
 import JudgeDemoPage from "./pages/JudgeDemoPage";
+import LandingPage from "./pages/LandingPage";
 import SignInPage from "./pages/SignInPage";
 
 function LegacyRunRedirect() {
@@ -239,7 +240,7 @@ function App() {
     apiGet<SessionResponse>("/auth/session").then(setSession).catch(() => setSession(null));
   }, []);
   if (session === undefined) return <div className="grid min-h-screen place-items-center bg-ink text-sm text-white/70">Opening Black Box...</div>;
-  if (session === null) return <Routes><Route path="/signin" element={<SignInPage onSignedIn={setSession} />} /><Route path="*" element={<Navigate replace to="/signin" />} /></Routes>;
+  if (session === null) return <Routes><Route path="/" element={<LandingPage />} /><Route path="/signin" element={<SignInPage onSignedIn={setSession} />} /><Route path="*" element={<Navigate replace to="/" />} /></Routes>;
   const signOut = async () => {
     await apiPost<void>("/auth/logout");
     setSession(null);

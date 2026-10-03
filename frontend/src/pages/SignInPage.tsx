@@ -1,5 +1,6 @@
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { apiPost, ApiError } from "../api/client";
 import type { SessionResponse } from "../api/types";
 
@@ -31,11 +32,11 @@ export default function SignInPage({ onSignedIn }: { onSignedIn: (session: Sessi
       <div className="grid min-h-screen lg:grid-cols-[minmax(0,1.35fr)_minmax(420px,0.65fr)]">
         <section className="relative flex min-h-[54vh] flex-col overflow-hidden border-b border-white/15 px-6 py-7 sm:px-10 lg:min-h-screen lg:border-b-0 lg:border-r lg:px-16 lg:py-10">
           <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:40px_40px]" />
-          <div className="relative flex items-center gap-3">
+          <Link to="/" className="relative flex items-center gap-3" aria-label="Back to Black Box home">
             <span className="h-4 w-4 bg-orange" />
             <span className="heading text-lg">Black Box</span>
             <span className="ml-auto rounded-chip border border-white/20 px-3 py-1 text-xs text-white/70">Judge build</span>
-          </div>
+          </Link>
 
           <div className="relative my-auto max-w-3xl py-12 lg:py-20">
             <p className="mb-5 font-mono text-xs uppercase text-orange">AI failure intelligence</p>
