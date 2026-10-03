@@ -150,7 +150,7 @@ export default function LiveLabPage() {
             {workspace === "nimbu" && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {(tasks.data ?? []).slice(0, 3).map((task) => (
-                  <button key={task.task_id} onClick={() => setTaskId(task.task_id)} className="max-w-full truncate rounded-chip border border-rule bg-panel px-3 py-1.5 text-left text-xs text-advisory">
+                  <button key={task.task_id} onClick={() => setTaskId(task.task_id)} className="min-h-9 max-w-full rounded-chip border border-rule bg-panel px-3 py-1.5 text-left text-xs leading-4 text-advisory">
                     {task.question}
                   </button>
                 ))}

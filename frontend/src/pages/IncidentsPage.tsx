@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIncidents } from "../api/hooks";
 import type { IncidentSummary } from "../api/types";
-import { EmptyState, ErrorState, Skeleton } from "../components/ui";
+import { Button, EmptyState, ErrorState, Skeleton } from "../components/ui";
 
 const inr = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -54,6 +54,12 @@ export default function IncidentsPage() {
     else next.delete(key);
     setParams(next);
   };
+  const hasFilters =
+    params.has("severity") ||
+    params.has("category") ||
+    (params.has("status") && status !== "active");
+  const hasOtherStatuses = Boolean(incidents.data?.items.length);
+  const showAll = () => setParams({ status: "all" });
   const selectClass = "h-9 rounded-chip border border-rule bg-panel px-3 text-sm text-graphite";
 
   return (
@@ -91,7 +97,24 @@ export default function IncidentsPage() {
       {incidents.isError ? (
         <ErrorState onRetry={() => incidents.refetch()} />
       ) : !incidents.isLoading && !items.length ? (
-        <EmptyState title="No open incidents. Wrong answers will be grouped here as they happen." />
+        <EmptyState
+          title={
+            hasFilters
+              ? "No incidents match these filters."
+              : hasOtherStatuses
+                ? "No open incidents."
+                : "No incidents yet. Wrong answers will be grouped here as they happen."
+          }
+          action={
+            hasFilters || hasOtherStatuses ? (
+              <Button onClick={showAll}>Show all incidents</Button>
+            ) : (
+              <Button variant="orange" onClick={() => navigate("/lab")}>
+                Run a simulation
+              </Button>
+            )
+          }
+        />
       ) : (
         <div className="overflow-hidden rounded-panel border border-rule bg-panel">
           <div className="overflow-x-auto">
