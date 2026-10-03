@@ -6,7 +6,7 @@ Built for **Bit N Build 2026** (GDG On Campus, Fr. CRCE), AI/ML Problem Statemen
 
 An AI agent runs a dozen steps and gets the answer wrong. One step was responsible. Black Box learns to find it from execution traces, proves the diagnosis by counterfactual replay, explains it with evidence from the trace, and repairs the run by re-executing only the steps the fix actually affects.
 
-![Run Detail](docs/img/run-detail.png)
+![Run Detail](docs/img/run-detail-v2.png)
 
 ## What makes it different
 
@@ -30,7 +30,7 @@ The final generation attempt on October 3, 2026 exhausted the configured Gemini 
 - Bisect cost: N/A (0 evaluated labels)
 - Auto-repair success: N/A at top-1 and top-3
 
-![Evaluation](docs/img/eval.png)
+![Evaluation](docs/img/eval-v2.png)
 
 ## How it works
 
@@ -51,7 +51,7 @@ flowchart LR
 5. **Explain** each diagnosis with feature evidence from the trace.
 6. **Fix** candidates from the checkpoint while reusing unaffected work.
 
-![Trace comparison](docs/img/compare.png)
+![Trace comparison](docs/img/compare-v2.png)
 
 ## Problem statement coverage
 

@@ -6,7 +6,7 @@ Built for **Bit N Build 2026** (GDG On Campus, Fr. CRCE) · AI/ML Problem Statem
 
 An AI agent runs a dozen steps and gets the answer wrong. One step was responsible. Black Box learns to find it from execution traces, proves the diagnosis by counterfactual replay, explains it with evidence from the trace, and repairs the run by re-executing only the steps the fix actually affects.
 
-![Run Detail](../docs/img/run-detail.png)
+![Run Detail](../docs/img/run-detail-v2.png)
 
 ## What makes it different
 
