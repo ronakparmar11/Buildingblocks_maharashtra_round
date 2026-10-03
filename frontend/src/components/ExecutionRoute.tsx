@@ -41,20 +41,24 @@ type WaypointData = {
   faded?: boolean;
   groundTruth?: "injected" | "proven";
   compact?: boolean;
+  status?: "changed" | "same" | "first";
 };
 type WaypointNode = Node<WaypointData, "waypoint">;
 
 function Waypoint({ data }: NodeProps<WaypointNode>) {
-  const { step, diagnosis, selected, affected, faded, groundTruth, compact } =
-    data;
+  const { step, diagnosis, selected, affected, faded, groundTruth, compact, status } = data;
   const Icon = step.error
     ? AlertTriangle
     : (icons[step.name as keyof typeof icons] ?? Map);
   const rank = diagnosis?.rank;
   const score = diagnosis?.score ?? 0;
   const heat =
-    rank === 1
+    status === "first" || rank === 1
       ? "border-2 border-orange bg-orange-tint"
+      : status === "changed"
+        ? "border border-caution bg-caution-tint"
+        : status === "same"
+          ? "border border-dashed border-ghost bg-panel opacity-60"
       : score > 0.6
         ? "border-2 border-caution bg-caution-tint"
         : score >= 0.25
@@ -125,6 +129,7 @@ export type ExecutionRouteProps = {
   compact?: boolean;
   revealUpTo?: number;
   groundTruth?: { injected?: string; proven?: string };
+  statuses?: Record<string, "changed" | "same" | "first">;
 };
 
 export default function ExecutionRoute({
@@ -137,6 +142,7 @@ export default function ExecutionRoute({
   compact = false,
   revealUpTo,
   groundTruth,
+  statuses,
 }: ExecutionRouteProps) {
   const visible =
     revealUpTo === undefined
@@ -178,6 +184,7 @@ export default function ExecutionRoute({
           faded: Boolean(highlight && !affected),
           groundTruth: marker,
           compact,
+          status: statuses?.[step.step_key],
         },
       };
     });
@@ -202,7 +209,7 @@ export default function ExecutionRoute({
         },
       }));
     return { nodes: nextNodes, flowEdges: nextEdges };
-  }, [visible, edges, ranking, selectedKey, highlight, compact, groundTruth]);
+  }, [visible, edges, ranking, selectedKey, highlight, compact, groundTruth, statuses]);
   return (
     <div
       className="h-full min-h-[340px] w-full bg-paper"
@@ -222,20 +229,7 @@ export default function ExecutionRoute({
         onPaneClick={() => onSelect?.(null)}
         proOptions={{ hideAttribution: true }}
       >
-        <Background
-          id="minor"
-          variant={BackgroundVariant.Lines}
-          gap={24}
-          size={1}
-          color="#DFE5E8"
-        />
-        <Background
-          id="major"
-          variant={BackgroundVariant.Lines}
-          gap={120}
-          size={1}
-          color="#C9D2D8"
-        />
+        {!compact && <><Background id="minor" variant={BackgroundVariant.Lines} gap={24} size={1} color="#DFE5E8"/><Background id="major" variant={BackgroundVariant.Lines} gap={120} size={1} color="#C9D2D8"/></>}
         {!compact && (
           <Controls showInteractive={false} position="bottom-left" />
         )}

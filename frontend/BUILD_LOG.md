@@ -7,7 +7,7 @@
 | f02 Run detail graph | done | Responsive detail header/facts shell, dagre React Flow route, waypoint states, synchronized FDR tape, ground truth, and reduced-motion-aware diagnosis playback. Browser checks left: fit/pan, hover sync, responsive projector view. |
 | f03 Inspector | done | Reusable inspector with ranked header, Why reasons/evidence/contributions, blast count, passage-aware I/O, State reconstruction, empty state, and responsive bottom sheet. Browser checks left: focus order and long-passage expansion. |
 | f04 Replay and fixes | done | Editable/validated replay, blast-radius graph preview, pass/fail result panel, progressive three-attempt fixes job, success/failure states, and focus-trapped drawer. Browser checks left: job timing, focus return, graph pulse/preview feel. |
-| f05 Compare | pending | |
+| f05 Compare | done | Outcome comparison, generated divergence summary, compact status route, data-dependent filter, expandable first word diff and side-by-side JSON, plus missing/loading/error states. Browser checks left: compact framing and narrow table. |
 | f06 Evaluation | pending | |
 | f07 Fleet | pending | |
 | f08 Live lab | pending | |
@@ -47,3 +47,10 @@
 - Decisions: editor/mutation result stays local to the inspector; blast-radius highlight and drawer state live in the detail page; mock attempts resolve every 900 ms.
 - Validation: `npm run build` passed (existing non-failing chunk-size warning).
 - Left for browser verification: replay loading pulse, exact JSON error wording by browser, streamed timing, focus trap/return, and graph preview appearance.
+
+## f05 Compare
+
+- Files changed: Compare page, compact comparison states in `ExecutionRoute`, app route.
+- Decisions: reconstruct run B route directly from aligned compare rows; comparisons with eight or fewer rows default to All steps, larger comparisons to Changed only.
+- Validation: `npm run build` passed (existing non-failing chunk-size warning).
+- Left for browser verification: 180px graph fit, first-difference expansion, JSON columns, and narrow viewport table behavior.
