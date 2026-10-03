@@ -170,6 +170,19 @@ def test_overview_incident_detail_and_patch(business_client: TestClient) -> None
     assert detail_after_rejection.json()["incident"]["owner"] == "Asha"
 
 
+def test_conversation_category_and_incident_link(business_client: TestClient) -> None:
+    matching = business_client.get("/api/runs?workspace=nimbu&category=returns")
+    assert matching.status_code == 200
+    assert matching.json()["total"] == 1
+
+    excluded = business_client.get("/api/runs?workspace=nimbu&category=shipping")
+    assert excluded.status_code == 200
+    assert excluded.json()["total"] == 0
+
+    detail = business_client.get("/api/runs/nimbu-api-run?workspace=nimbu")
+    assert detail.status_code == 200
+    assert detail.json()["run"]["incident_id"] == "nimbu-incident"
+
 def test_notifications_recipients_rules_and_settings(
     business_client: TestClient,
 ) -> None:

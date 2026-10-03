@@ -101,6 +101,8 @@ export default function Inspector({
         title: string;
         text: string;
         score: number;
+        status?: string;
+        updated_at?: string;
       }[])
     : [];
   return (

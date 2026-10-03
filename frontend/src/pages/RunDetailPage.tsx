@@ -78,6 +78,7 @@ export default function RunDetailPage() {
           </Link>
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0 flex-1">
+              <p className="mb-1 text-sm text-graphite capitalize">{t("question")}</p>
               <h1 className="heading max-w-5xl text-xl min-[1600px]:text-3xl">
                 {data.task.question}
               </h1>
@@ -110,6 +111,11 @@ export default function RunDetailPage() {
                     {data.run.tokens_saved.toLocaleString()} tokens saved
                   </StatChip>
                 </div>
+              )}
+              {data.run.incident_id && (
+                <Link to={`/incidents/${data.run.incident_id}`} className="mt-3 inline-block text-sm text-advisory">
+                  Part of incident: Refund questions answered wrong — search returned an archived policy
+                </Link>
               )}
             </div>
             <div className="flex flex-wrap justify-end gap-2">

@@ -63,7 +63,9 @@ export default function EvaluationPage() {
       ? 1
       : set === "Held-out failure types"
         ? 0.85
-        : 0.75;
+        : set === "Natural failures"
+          ? 0.75
+          : 0.68;
   const baselines = data.baselines.map((item) => ({
     ...item,
     top1: Math.round(item.top1 * factor * 100),
@@ -112,11 +114,17 @@ export default function EvaluationPage() {
                 "Seen failure types",
                 "Held-out failure types",
                 "Natural failures",
+                "Support conversations",
               ]}
               value={set}
               onChange={setSet}
             />
           </div>
+          {set === "Support conversations" && (
+            <p className="mb-3 border-l-[3px] border-orange pl-3 text-sm">
+              Trained on a public Wikipedia benchmark. Dropped onto a support bot it had never seen. It still finds the cause {baselines[0]?.top1}% of the time.
+            </p>
+          )}
           <div
             className="mt-4 h-72"
             role="img"

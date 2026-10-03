@@ -35,6 +35,13 @@ const options = {
     ["test", "Test"],
     ["train", "Train"],
   ],
+  category: [
+    ["", "Category"],
+    ["refunds", "Refunds"],
+    ["returns", "Returns"],
+    ["shipping", "Shipping"],
+    ["payments", "Payments"],
+  ],
   fault_type: [
     ["", "Injected failure type"],
     ["distractor_retrieval", "Distractor retrieval"],

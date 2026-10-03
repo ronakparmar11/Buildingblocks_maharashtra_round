@@ -313,12 +313,18 @@ export function JsonEditor({
 export function PassageCard({
   passage,
 }: {
-  passage: { title: string; text: string; score: number };
+  passage: { title: string; text: string; score: number; status?: string; updated_at?: string };
 }) {
   return (
     <article className="rounded-node border border-rule bg-panel p-3">
-      <div className="flex justify-between gap-4">
-        <h4 className="heading">{passage.title}</h4>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="heading">{passage.title}</h4>
+            {passage.status === "archived" && <span className="rounded-chip bg-caution-tint px-2 py-0.5 text-xs">Archived</span>}
+          </div>
+          {passage.updated_at && <p className="mt-1 text-xs text-graphite">Updated {new Date(passage.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>}
+        </div>
         <span className="font-mono text-xs">{passage.score.toFixed(2)}</span>
       </div>
       <p className="mt-2 line-clamp-4 text-sm text-graphite">{passage.text}</p>

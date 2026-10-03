@@ -36,7 +36,7 @@ export const useRepairJob = () => {
 };
 export const useJob = (id?: string) => {
   const { workspace } = useWorkspace();
-  return useQuery({ queryKey: ["job", workspace, id], queryFn: () => apiGet<T.JobResponse>(scoped(`/jobs/${id}`, workspace)), enabled: Boolean(id), refetchInterval: (query) => ["completed", "failed"].includes(query.state.data?.status ?? "") ? false : 700 });
+  return useQuery({ queryKey: ["job", workspace, id], queryFn: () => apiGet<T.JobResponse>(scoped(`/jobs/${id}`, workspace)), enabled: Boolean(id), refetchInterval: (query) => ["completed", "failed"].includes(query.state.data?.status ?? "") ? false : 700, refetchIntervalInBackground: true });
 };
 export const useCompare = (a: string, b: string) => {
   const { workspace } = useWorkspace();

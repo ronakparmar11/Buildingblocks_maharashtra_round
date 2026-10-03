@@ -27,6 +27,7 @@ def list_run_records(
     origin: str | None = None,
     split: str | None = None,
     fault_type: str | None = None,
+    category: str | None = None,
     q: str = "",
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
@@ -39,6 +40,7 @@ def list_run_records(
             and (origin is None or origin == sample["run"]["origin"])
             and (split is None or split == sample["task"]["split"])
             and (fault_type is None or fault_type == sample["fault"]["fault_type"])
+            and category is None
             and (not q or q.casefold() in sample["task"]["question"].casefold())
         )
         items = [fixture_run_summary()] if matches and offset == 0 else []
@@ -67,6 +69,8 @@ def list_run_records(
             if fault_type is not None and (
                 fault is None or fault.fault_type != fault_type
             ):
+                continue
+            if category is not None and task.category != category:
                 continue
             if q and q.casefold() not in task.question.casefold():
                 continue

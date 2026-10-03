@@ -47,6 +47,7 @@ class RunRecord(APIModel):
     latency_ms: int
     created_at: datetime
     replay_spec: dict[str, Any] | None
+    incident_id: str | None = None
 
 
 class TaskRecord(APIModel):

@@ -13,6 +13,7 @@ import type {
   ReplayResponse,
   RunDetailResponse,
   RunListResponse,
+  SimulateRequest,
   TaskRecord,
 } from "../api/types";
 import {
@@ -29,7 +30,7 @@ import { fleet } from "./fleet";
 import { getMockDetail, getMockDiagnosis, runs } from "./generator";
 import { tasks } from "./hero-runs";
 
-const jobs = new Map<string, { started: number; type: "repair" | "simulate" | "verify" }>();
+const jobs = new Map<string, { started: number; type: "repair" | "simulate" | "verify"; n?: number; failureRate?: number }>();
 const wait = () =>
   new Promise((resolve) => setTimeout(resolve, 250 + Math.random() * 350));
 const summary = (id: string) =>
@@ -156,7 +157,8 @@ export async function mockRequest<T>(
   if (pathname === "/settings/business" && method === "PUT") return body as T;
   if (pathname === "/simulate" && method === "POST") {
     const id = `simulation_${Date.now()}`;
-    jobs.set(id, { started: Date.now(), type: "simulate" });
+    const request = body as SimulateRequest;
+    jobs.set(id, { started: Date.now(), type: "simulate", n: request.n ?? 30, failureRate: request.failure_rate ?? 0.35 });
     return { job_id: id } as T;
   }
   if (pathname === "/health")
@@ -172,6 +174,7 @@ export async function mockRequest<T>(
     const origin = url.searchParams.get("origin");
     const q = url.searchParams.get("q")?.toLowerCase();
     const causeName = url.searchParams.get("cause_name");
+    const category = url.searchParams.get("category");
     if (outcome) filtered = filtered.filter((run) => run.outcome === outcome);
     if (origin) filtered = filtered.filter((run) => run.origin === origin);
     if (q)
@@ -182,6 +185,14 @@ export async function mockRequest<T>(
       filtered = filtered.filter((run) =>
         run.predicted_culprit?.step_key.includes(causeName),
       );
+    if (category && workspace === "nimbu")
+      filtered = filtered.filter((run) => {
+        const question = run.question.toLowerCase();
+        if (category === "refunds") return question.includes("refund");
+        if (category === "returns") return question.includes("return") || question.includes("wrong colour");
+        if (category === "shipping") return question.includes("delivery") || question.includes("dispatch");
+        return question.includes("cod");
+      });
     const offset = Number(url.searchParams.get("offset") ?? 0);
     const limit = Number(url.searchParams.get("limit") ?? 50);
     return {
@@ -242,8 +253,8 @@ export async function mockRequest<T>(
         status: progress >= 1 ? "completed" : "running",
         progress,
         result: {
-          sent: Math.round(progress * 30),
-          failed: Math.round(progress * 11),
+          sent: Math.round(progress * (job.n ?? 30)),
+          failed: Math.round(progress * (job.n ?? 30) * (job.failureRate ?? 0.35)),
           incidents_opened: progress > 0.55 ? 1 : 0,
           emails_sent: progress > 0.7 ? 1 : 0,
         },
@@ -306,10 +317,10 @@ export async function mockRequest<T>(
       const base = getMockDetail("r_natural_fail");
       return {
         ...base,
-        run: { ...base.run, run_id: summary.run_id, task_id: summary.task_id, origin: summary.origin, final_answer: summary.outcome === "fail" ? "Yes, you can return it within 30 days." : "Returns are accepted within 7 days of delivery.", outcome: summary.outcome, score_f1: summary.score_f1, n_steps: summary.n_steps, created_at: summary.created_at },
+        run: { ...base.run, run_id: summary.run_id, task_id: summary.task_id, origin: summary.origin, final_answer: summary.outcome === "fail" ? "Yes, you can return it within 30 days." : "Returns are accepted within 7 days of delivery.", outcome: summary.outcome, score_f1: summary.score_f1, n_steps: summary.n_steps, created_at: summary.created_at, incident_id: summary.outcome === "fail" ? "inc_refunds_archived" : null },
         task: { ...base.task, task_id: summary.task_id, question: summary.question, gold_answer: "Returns are accepted within 7 days of delivery.", gold_titles: ["Return policy"] },
         steps: base.steps.map((step) => {
-          if (step.name === "retrieve") return { ...step, output: { passages: [{ pid: "a_returns_current", title: "Return policy", text: "Returns are accepted within 7 days of delivery.", status: "current", score: 0.94 }] }, output_text: "Return policy" };
+          if (step.name === "retrieve") return { ...step, output: { passages: [{ pid: summary.outcome === "fail" ? "a_returns_2024" : "a_returns_current", title: summary.outcome === "fail" ? "Return policy (2024)" : "Return policy", text: summary.outcome === "fail" ? "Items can be returned within 30 days of delivery." : "Returns are accepted within 7 days of delivery.", status: summary.outcome === "fail" ? "archived" : "current", updated_at: summary.outcome === "fail" ? "2024-05-12" : "2026-09-18", score: 0.94 }] }, output_text: summary.outcome === "fail" ? "Return policy (2024) — archived" : "Return policy" };
           if (step.name === "extract") return { ...step, output: { answer: "30 days" }, output_text: "30 days" };
           if (step.name === "check") return { ...step, output: { verdict: "unsupported" }, output_text: "unsupported" };
           if (step.name === "synthesize") return { ...step, output: { answer: "Yes, you can return it within 30 days." }, output_text: "Yes, you can return it within 30 days." };
@@ -377,6 +388,7 @@ export async function mockRequest<T>(
       targets: [
         { fault_type: "distractor_retrieval", step_key: "q1/retrieve#0" },
         { fault_type: "wrong_extraction", step_key: "q1/extract#0" },
+        ...(workspace === "nimbu" ? [{ fault_type: "HALLUCINATED_SYNTHESIS", step_key: "synthesize" }] : []),
       ],
     } as T;
   if (pathname === "/live/run" && method === "POST")
