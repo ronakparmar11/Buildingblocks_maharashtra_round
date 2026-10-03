@@ -35,6 +35,7 @@ def business_client(
     SQLModel.metadata.create_all(engine)
     monkeypatch.setattr(db, "engine", engine)
     monkeypatch.setenv("BLACKBOX_MOCK_API", "0")
+    monkeypatch.setenv("DEMO_AUTH_ENABLED", "0")
     monkeypatch.setenv("SMTP_PASSWORD", "api-secret")
     get_settings.cache_clear()
     FakeMailer.sent.clear()

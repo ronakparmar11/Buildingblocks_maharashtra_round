@@ -190,6 +190,12 @@ class RepairResponse(APIModel):
     winning_run_id: str | None
 
 
+class GoldenDemoResponse(APIModel):
+    run: RunDetailResponse
+    diagnosis: DiagnosisResponse
+    repair: RepairResponse
+
+
 class JobCreatedResponse(APIModel):
     job_id: str
 

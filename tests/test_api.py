@@ -191,6 +191,7 @@ def test_real_mode_uses_temp_database_seeded_with_fake_llm(
     SQLModel.metadata.create_all(engine)
     monkeypatch.setattr(db, "engine", engine)
     monkeypatch.setenv("BLACKBOX_MOCK_API", "0")
+    monkeypatch.setenv("DEMO_AUTH_ENABLED", "0")
     monkeypatch.setenv("ARTIFACTS_DIR", str(tmp_path))
     get_settings.cache_clear()
     (tmp_path / "eval.json").write_text(

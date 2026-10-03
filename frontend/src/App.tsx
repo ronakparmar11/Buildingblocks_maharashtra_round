@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Keyboard, Menu, X } from "lucide-react";
+import { ChevronDown, Keyboard, LogOut, Menu, Star, X } from "lucide-react";
 import {
   Navigate,
   NavLink,
@@ -10,6 +10,8 @@ import {
   useParams,
 } from "react-router-dom";
 import { useHealth } from "./api/hooks";
+import { apiGet, apiPost } from "./api/client";
+import type { SessionResponse } from "./api/types";
 import { Popover } from "./components/ui";
 import {
   useWorkspace,
@@ -26,6 +28,9 @@ import OverviewPage from "./pages/OverviewPage";
 import IncidentsPage from "./pages/IncidentsPage";
 import IncidentDetailPage from "./pages/IncidentDetailPage";
 import SettingsNotificationsPage from "./pages/SettingsNotificationsPage";
+import JudgeDemoPage from "./pages/JudgeDemoPage";
+import LandingPage from "./pages/LandingPage";
+import SignInPage from "./pages/SignInPage";
 
 function LegacyRunRedirect() {
   const { id } = useParams();
@@ -33,7 +38,7 @@ function LegacyRunRedirect() {
   return <Navigate replace to={`${id ? `/conversations/${id}` : "/conversations"}${location.search}`} />;
 }
 
-function Shell() {
+function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut: () => void }) {
   const health = useHealth();
   const { workspace, setWorkspace } = useWorkspace();
   const navigate = useNavigate();
@@ -66,6 +71,7 @@ function Shell() {
   }, [navigate]);
   const links = [
     ["/", "Overview"],
+    ["/judge-demo", "Judge demo"],
     ["/incidents", "Incidents"],
     ["/conversations", "Conversations"],
     ["/eval", "Evaluation"],
@@ -119,6 +125,7 @@ function Shell() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <NavLink to="/judge-demo" title="Open the saved judge demo" className="hidden h-8 items-center gap-1.5 rounded-control bg-orange-tint px-3 text-xs font-medium text-orange lg:flex"><Star className="h-3.5 w-3.5" /> Judge demo</NavLink>
             <span className="md:hidden">
               <Popover
                 closeOnContentClick
@@ -164,12 +171,15 @@ function Shell() {
             >
               <Keyboard className="h-4 w-4 text-graphite" />
             </button>
+            <button title={`Sign out ${session.email}`} aria-label="Sign out" onClick={onSignedOut} className="grid h-8 w-8 place-items-center text-graphite"><LogOut className="h-4 w-4" /></button>
           </div>
         </div>
       </header>
       <main>
         <Routes>
+          <Route path="/signin" element={<Navigate replace to="/judge-demo" />} />
           <Route path="/" element={<OverviewPage />} />
+          <Route path="/judge-demo" element={<JudgeDemoPage />} />
           <Route path="/incidents" element={<IncidentsPage />} />
           <Route path="/incidents/:id" element={<IncidentDetailPage />} />
           <Route path="/conversations" element={<RunsPage />} />
@@ -225,7 +235,17 @@ function Shell() {
   );
 }
 function App() {
-  return <Shell />;
+  const [session, setSession] = useState<SessionResponse | null | undefined>();
+  useEffect(() => {
+    apiGet<SessionResponse>("/auth/session").then(setSession).catch(() => setSession(null));
+  }, []);
+  if (session === undefined) return <div className="grid min-h-screen place-items-center bg-ink text-sm text-white/70">Opening Black Box...</div>;
+  if (session === null) return <Routes><Route path="/" element={<LandingPage />} /><Route path="/signin" element={<SignInPage onSignedIn={setSession} />} /><Route path="*" element={<Navigate replace to="/" />} /></Routes>;
+  const signOut = async () => {
+    await apiPost<void>("/auth/logout");
+    setSession(null);
+  };
+  return <Shell session={session} onSignedOut={signOut} />;
 }
 
 export default App;
