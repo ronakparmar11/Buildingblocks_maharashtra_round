@@ -80,11 +80,27 @@ def _fill_placeholders(text: str, subanswers: dict[str, str]) -> str:
     )
 
 
-def _retrieval_call(ctx: ExecutionContext, input_data: dict[str, Any]) -> dict[str, Any]:
+def _repair_retrieval_call(
+    ctx: ExecutionContext, input_data: dict[str, Any], params: dict[str, Any]
+) -> dict[str, Any]:
     assert ctx.retriever is not None
-    query = str(input_data["query"])
-    k = int(input_data["k"])
+    query = str(params.get("query", input_data["query"]))
+    k = int(params.get("k", input_data["k"]))
+    if params.get("retrieval_mode") == "title_entity":
+        entity = str(params.get("entity", query))
+        return {"passages": list(ctx.retriever.search_titles(entity, k=k))}
     return {"passages": list(ctx.retriever.search(query, k=k))}
+
+
+def _prompted_llm_call(
+    tracer: Any,
+    input_data: dict[str, Any],
+    params: dict[str, Any],
+    prompt: str,
+) -> tuple[dict[str, Any], Usage]:
+    effective_input = dict(input_data)
+    effective_input["prompt"] = prompt
+    return tracer.llm_call(effective_input, params)
 
 
 def run_agent(task: Task, ctx: ExecutionContext) -> Run:
@@ -118,7 +134,16 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                 attempt=0,
                 deps=[],
                 input={"question": task.question, "prompt": prompt},
-                fn=tracer.llm_call,
+                fn=lambda input_data, params: _prompted_llm_call(
+                    tracer,
+                    input_data,
+                    params,
+                    plan_prompt(
+                        task.question,
+                        str(params.get("prompt_variant", "")),
+                        task.qtype,
+                    ),
+                ),
                 output_text_fn=lambda output: (
                     f"{output.get('type', 'invalid')}: "
                     f"{len(output.get('subquestions', []))} subquestions"
@@ -152,7 +177,7 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                         deps=retrieve_deps,
                         input={"query": query, "k": 3},
                         fn=lambda input_data, params: (
-                            _retrieval_call(ctx, input_data),
+                            _repair_retrieval_call(ctx, input_data, params),
                             Usage(tokens_in=0, tokens_out=0, model="retriever"),
                         ),
                         output_text_fn=lambda output: (
@@ -180,7 +205,19 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                             "passages": passages,
                             "prompt": extract_prompt(subquestion, passages),
                         },
-                        fn=tracer.llm_call,
+                        fn=lambda input_data,
+                        params,
+                        subquestion=subquestion,
+                        passages=passages: _prompted_llm_call(
+                            tracer,
+                            input_data,
+                            params,
+                            extract_prompt(
+                                subquestion,
+                                passages,
+                                str(params.get("prompt_variant", "")),
+                            ),
+                        ),
                         output_text_fn=lambda output: str(output.get("answer", "")),
                     )
                     answer = str(extract.get("answer", ""))
@@ -243,7 +280,16 @@ def run_agent(task: Task, ctx: ExecutionContext) -> Run:
                     "subanswers": dict(state["subanswers"]),
                     "prompt": synth_prompt,
                 },
-                fn=tracer.llm_call,
+                fn=lambda input_data, params: _prompted_llm_call(
+                    tracer,
+                    input_data,
+                    params,
+                    synthesize_prompt(
+                        task.question,
+                        state["subanswers"],
+                        str(params.get("prompt_variant", "")),
+                    ),
+                ),
                 output_text_fn=lambda output: str(output.get("answer", "")),
             )
             state["final"] = str(synthesis.get("answer", ""))
