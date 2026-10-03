@@ -250,3 +250,11 @@ def test_demo_mode_raises_on_cassette_miss(session: Session, fake: FakeLLM) -> N
     tracer = _tracer(session, fake, demo_mode=True)
     with pytest.raises(CassetteMissError):
         _run_toy(tracer, _context("demo", demo_mode=True))
+
+    step = get_steps(session, "demo")[0]
+    run = get_run(session, "demo")
+    assert step.step_key == "first"
+    assert step.error is not None and "CassetteMissError" in step.error
+    assert run is not None
+    assert run.outcome == "error"
+    assert run.n_steps == 1
