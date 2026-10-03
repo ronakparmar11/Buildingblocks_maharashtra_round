@@ -11,9 +11,10 @@ from blackbox.api.schemas import (
     TaskListResponse,
 )
 from blackbox.config import get_settings
+from blackbox.sdk.cassette import DEMO_CASSETTE_MISS_MESSAGE, CassetteMissError
 from blackbox.store.db import get_session
-from blackbox.store.models import Task
-from blackbox.store.repo import list_tasks
+from blackbox.store.models import Run, Task
+from blackbox.store.repo import get_steps, list_tasks
 
 router = APIRouter()
 
@@ -122,13 +123,14 @@ def _run_fault(
         task = session.get(Task, task_id)
         if task is None:
             raise ValueError(f"Unknown task id: {task_id}")
-        run_with_fault(
+        run = run_with_fault(
             task,
             fault_type,
             step_key,
             get_settings().SEED,
             run_id,
         )
+    _raise_demo_cassette_miss(run)
     return {"run_id": run_id}
 
 
@@ -152,5 +154,17 @@ def _run_clean(task_id: str, run_id: str) -> dict[str, str]:
             tracer=Tracer(session, Cassette(session), llm=_llm_client()),
             retriever=get_retriever(task.workspace),
         )
-        run_agent(task, context)
-        return {"run_id": run_id}
+        run = run_agent(task, context)
+    _raise_demo_cassette_miss(run)
+    return {"run_id": run_id}
+
+
+def _raise_demo_cassette_miss(run: Run) -> None:
+    if not get_settings().BLACKBOX_DEMO_MODE or run.outcome != "error":
+        return
+    with get_session() as session:
+        if any(
+            "CassetteMissError" in (step.error or "")
+            for step in get_steps(session, run.run_id)
+        ):
+            raise CassetteMissError(DEMO_CASSETTE_MISS_MESSAGE)

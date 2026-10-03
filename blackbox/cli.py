@@ -813,8 +813,80 @@ def repair_command(
 
 
 @app.command()
-def prewarm() -> None:
-    _not_implemented()
+def prewarm(
+    tasks: Annotated[str, typer.Option("--tasks")],
+    faults: Annotated[str, typer.Option("--faults")],
+) -> None:
+    task_ids = [item.strip() for item in tasks.split(",") if item.strip()]
+    fault_specs = [item.strip() for item in faults.split(",") if item.strip()]
+    if not task_ids:
+        raise typer.BadParameter("--tasks must contain at least one task id")
+    if len(task_ids) != len(fault_specs):
+        raise typer.BadParameter(
+            "--tasks and --faults must contain the same number of items"
+        )
+
+    parsed_faults: list[tuple[str, str]] = []
+    for spec in fault_specs:
+        fault_type, separator, step_key = spec.partition("@")
+        if not separator or not fault_type or not step_key:
+            raise typer.BadParameter(
+                f"Invalid fault '{spec}'; expected TYPE@STEP_KEY"
+            )
+        parsed_faults.append((fault_type, step_key))
+
+    init_db()
+    llm = _llm_client()
+    console = Console()
+    for task_id, (fault_type, step_key) in zip(
+        task_ids, parsed_faults, strict=True
+    ):
+        with get_session() as session:
+            task = get_task(session, task_id)
+            if task is None:
+                raise typer.BadParameter(f"Unknown task id: {task_id}")
+            clean_run = _execute_clean(session, task, llm)
+        if clean_run.outcome != "pass":
+            raise typer.BadParameter(
+                f"Clean run for {task_id} did not pass; choose another demo task"
+            )
+
+        fault_run = run_with_fault(
+            task,
+            fault_type,
+            step_key,
+            get_settings().SEED,
+        )
+        if fault_run.outcome != "fail":
+            raise typer.BadParameter(
+                f"{fault_type}@{step_key} did not fail for {task_id}; "
+                "choose another demo scenario"
+            )
+
+        diagnosis = diagnose(fault_run.run_id)
+        repair = repair_run(fault_run.run_id, top_k=3)
+        if not repair.attempts:
+            raise typer.BadParameter(
+                f"No repair candidates were available for {task_id}"
+            )
+        with get_session() as session:
+            source = get_run(session, fault_run.run_id)
+            if source is None:
+                raise typer.BadParameter(f"Fault run disappeared: {fault_run.run_id}")
+            for attempt in repair.attempts:
+                repaired = get_run(session, attempt.run_id)
+                if repaired is None:
+                    raise typer.BadParameter(
+                        f"Repair run disappeared: {attempt.run_id}"
+                    )
+                compare_runs(source, repaired)
+
+        top_step = diagnosis["ranking"][0]["step_key"]
+        status = "repaired" if repair.repaired else "not repaired"
+        console.print(
+            f"[bold]{task_id}[/bold]  fault={fault_type}@{step_key}  "
+            f"top-1={top_step}  attempts={len(repair.attempts)}  {status}"
+        )
 
 
 if __name__ == "__main__":

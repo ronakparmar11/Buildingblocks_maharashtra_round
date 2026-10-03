@@ -7,6 +7,11 @@ from blackbox.config import get_settings
 from blackbox.store.hashing import sha256_json
 from blackbox.store.models import Cassette as CassetteRow
 
+DEMO_CASSETTE_MISS_MESSAGE = (
+    "This step isn't in the demo recording. Pick one of the prepared "
+    "demo questions in Live lab."
+)
+
 
 class CassetteMissError(RuntimeError):
     pass
@@ -56,7 +61,7 @@ class Cassette:
             )
 
         if self.demo_mode:
-            raise CassetteMissError(f"Cassette miss in demo mode: {key}")
+            raise CassetteMissError(DEMO_CASSETTE_MISS_MESSAGE)
 
         response, usage = call_fn()
         row = CassetteRow(

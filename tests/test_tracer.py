@@ -248,7 +248,11 @@ def test_input_fault_noop_reuse_and_freeze_reexecutes(
 
 def test_demo_mode_raises_on_cassette_miss(session: Session, fake: FakeLLM) -> None:
     tracer = _tracer(session, fake, demo_mode=True)
-    with pytest.raises(CassetteMissError):
+    message = (
+        "This step isn't in the demo recording. Pick one of the prepared "
+        "demo questions in Live lab."
+    )
+    with pytest.raises(CassetteMissError, match=message):
         _run_toy(tracer, _context("demo", demo_mode=True))
 
     step = get_steps(session, "demo")[0]
