@@ -81,7 +81,22 @@ export default function OverviewPage() {
   if (overview.isError) return <ErrorState onRetry={() => overview.refetch()} />;
   const data = overview.data;
   if (!data?.kpis.conversations)
-    return <EmptyState title="No conversations yet. Run the traffic simulator from Live lab to see how Black Box catches wrong answers." />;
+    return (
+      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
+        <h1 className="heading text-xl">{workspaceDetails[workspace].name}</h1>
+        <EmptyState
+          title="No conversations yet. Run a simulation to see how Black Box catches wrong answers."
+          action={
+            <Link
+              to="/lab"
+              className="inline-flex h-9 items-center justify-center rounded-control border border-orange bg-orange px-4 text-sm font-medium text-white"
+            >
+              Run a simulation
+            </Link>
+          }
+        />
+      </div>
+    );
   const chartData = data.daily.map((item) => ({
     ...item,
     label: new Date(`${item.date}T00:00:00`).toLocaleDateString("en-IN", { weekday: "short" }),
@@ -127,34 +142,49 @@ export default function OverviewPage() {
             <Link to="/incidents" className="text-xs text-advisory">View all</Link>
           </div>
           <div className="mt-3 divide-y divide-rule-soft border-y border-rule">
-            {data.open_incidents.slice(0, 4).map((incident) => (
-              <Link
-                key={incident.incident_id}
-                to={`/incidents/${incident.incident_id}`}
-                className="grid min-h-12 grid-cols-[78px_1fr_auto] items-center gap-3 py-2 text-sm"
-              >
-                <span className="flex items-center gap-2 capitalize">
-                  <span className={`h-2 w-2 rounded-full ${severityStyles[incident.severity]}`} />
-                  {incident.severity}
-                </span>
-                <span className="truncate font-medium" title={incident.title}>{incident.title}</span>
-                <span className="flex gap-3 whitespace-nowrap font-mono text-xs text-graphite">
-                  <span>{incident.n_runs} {t("runs")}</span>
-                  <span>{inr.format(incident.est_cost_inr)}</span>
-                </span>
-              </Link>
-            ))}
+            {data.open_incidents.length ? (
+              data.open_incidents.slice(0, 4).map((incident) => (
+                <Link
+                  key={incident.incident_id}
+                  to={`/incidents/${incident.incident_id}`}
+                  className="grid min-h-12 grid-cols-[78px_1fr_auto] items-center gap-3 py-2 text-sm"
+                >
+                  <span className="flex items-center gap-2 capitalize">
+                    <span className={`h-2 w-2 rounded-full ${severityStyles[incident.severity]}`} />
+                    {incident.severity}
+                  </span>
+                  <span className="truncate font-medium" title={incident.title}>{incident.title}</span>
+                  <span className="flex gap-3 whitespace-nowrap font-mono text-xs text-graphite">
+                    <span>{incident.n_runs} {t("runs")}</span>
+                    <span>{inr.format(incident.est_cost_inr)}</span>
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <div className="flex min-h-32 flex-col items-center justify-center gap-2 text-sm text-graphite">
+                <ShieldCheck className="h-5 w-5 text-normal" />
+                No open incidents
+              </div>
+            )}
           </div>
         </section>
       </div>
       <div className="grid gap-8 py-6 lg:grid-cols-2">
         <section>
           <h2 className="heading text-lg">Where failures start</h2>
-          <HorizontalBars rows={data.by_step_name} kind="steps" />
+          {data.by_step_name.length ? (
+            <HorizontalBars rows={data.by_step_name} kind="steps" />
+          ) : (
+            <p className="mt-4 text-sm text-graphite">No failures in this period.</p>
+          )}
         </section>
         <section>
           <h2 className="heading text-lg">Most common reasons</h2>
-          <HorizontalBars rows={data.by_reason} kind="reasons" />
+          {data.by_reason.length ? (
+            <HorizontalBars rows={data.by_reason} kind="reasons" />
+          ) : (
+            <p className="mt-4 text-sm text-graphite">No failure reasons to report.</p>
+          )}
         </section>
       </div>
     </div>

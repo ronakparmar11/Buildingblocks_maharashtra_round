@@ -59,6 +59,7 @@ def test_mailer_sends_multipart_plain_and_html(
         SMTP_USER="mailer",
         SMTP_PASSWORD="super-secret",
         SMTP_STARTTLS=1,
+        SMTP_SSL=0,
     )
     rendered = render_email("test", {"workspace_name": "Nimbu Living support"})
 
@@ -73,6 +74,29 @@ def test_mailer_sends_multipart_plain_and_html(
     content_types = {part.get_content_type() for part in smtp.message.walk()}
     assert {"text/plain", "text/html"} <= content_types
     assert "super-secret" not in smtp.message.as_string()
+
+
+def test_mailer_connection_check_authenticates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    SMTPRecorder.instances.clear()
+    monkeypatch.setattr("smtplib.SMTP", SMTPRecorder)
+    settings = Settings(
+        SMTP_HOST="mail.local",
+        SMTP_PORT=2525,
+        SMTP_USER="mailer",
+        SMTP_PASSWORD="super-secret",
+        SMTP_STARTTLS=1,
+        SMTP_SSL=0,
+    )
+
+    connected, error = Mailer(settings).check_connection()
+
+    smtp = SMTPRecorder.instances[0]
+    assert connected
+    assert error is None
+    assert smtp.started_tls
+    assert smtp.login_args == ("mailer", "super-secret")
 
 
 def test_subjects_and_indian_currency_format_are_exact() -> None:

@@ -176,7 +176,51 @@ export default function RunsPage() {
         )}
       </div>
       <div className="overflow-hidden rounded-panel border border-rule bg-panel">
-        <div className="overflow-x-auto">
+        <div className="divide-y divide-rule-soft md:hidden">
+          {runs.isLoading
+            ? Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="space-y-3 p-4">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              ))
+            : runs.data?.items.map((run) => (
+                <button
+                  key={run.run_id}
+                  type="button"
+                  onClick={() => navigate(`/conversations/${run.run_id}`)}
+                  className="block w-full p-4 text-left hover:bg-rule-soft/60 focus:bg-rule-soft/60"
+                >
+                  <span className="flex items-center justify-between gap-3">
+                    <OutcomeChip outcome={run.outcome} />
+                    <span
+                      className="text-xs text-graphite"
+                      title={new Date(run.created_at).toLocaleString()}
+                    >
+                      {relativeTime(run.created_at)}
+                    </span>
+                  </span>
+                  <span className="mt-3 line-clamp-2 block text-sm font-medium">
+                    {run.question}
+                  </span>
+                  <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-graphite">
+                    <RunTypeLabel origin={run.origin} />
+                    <span>{run.n_steps} steps</span>
+                    {run.predicted_culprit && (
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span>Likely cause</span>
+                        <StepKey value={run.predicted_culprit.step_key} />
+                      </span>
+                    )}
+                  </span>
+                </button>
+              ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full table-fixed border-collapse text-left">
             <thead>
               <tr className="h-10 border-b border-rule bg-paper text-xs text-graphite">
@@ -281,8 +325,20 @@ export default function RunsPage() {
           <ErrorState onRetry={() => runs.refetch()} />
         ) : !runs.isLoading && !runs.data?.items.length ? (
           <EmptyState
-            title={`No ${t("runs")} match these filters. Clear filters to see all ${t("runs")}.`}
-            action={<Button onClick={clear}>Clear filters</Button>}
+            title={
+              active
+                ? `No ${t("runs")} match these filters.`
+                : `No ${t("runs")} yet.`
+            }
+            action={
+              active ? (
+                <Button onClick={clear}>Clear filters</Button>
+              ) : (
+                <Button variant="orange" onClick={() => navigate("/lab")}>
+                  Run a {t("run")}
+                </Button>
+              )
+            }
           />
         ) : (
           <div className="flex h-14 items-center justify-between border-t border-rule px-4 text-sm text-graphite">

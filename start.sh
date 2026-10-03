@@ -6,7 +6,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
 API_PID=""
-MAILPIT_PID=""
 
 port_in_use() {
   lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
@@ -24,9 +23,6 @@ cleanup() {
   if [[ -n "$API_PID" ]]; then
     kill "$API_PID" 2>/dev/null || true
   fi
-  if [[ -n "$MAILPIT_PID" ]]; then
-    kill "$MAILPIT_PID" 2>/dev/null || true
-  fi
   wait 2>/dev/null || true
   exit "$exit_code"
 }
@@ -42,26 +38,8 @@ command -v lsof >/dev/null 2>&1 || fail "lsof is not installed."
 port_in_use 8000 && fail "Port 8000 is already in use. Stop the existing backend first."
 port_in_use 5173 && fail "Port 5173 is already in use. Stop the existing frontend first."
 
-if port_in_use 1025 || port_in_use 8025; then
-  if port_in_use 1025 && curl -fsS http://127.0.0.1:8025/api/v1/messages >/dev/null 2>&1; then
-    printf 'Mailpit is already running; reusing it.\n'
-  else
-    fail "Port 1025 or 8025 is occupied by a service that does not appear to be Mailpit."
-  fi
-else
-  command -v mailpit >/dev/null 2>&1 || fail "Mailpit is not installed. Run 'brew install mailpit' first."
-  mailpit &
-  MAILPIT_PID=$!
-fi
-
 export BLACKBOX_DEMO_MODE=0
 export BLACKBOX_MOCK_API=0
-export SMTP_HOST=localhost
-export SMTP_PORT=1025
-export SMTP_USER=""
-export SMTP_PASSWORD=""
-export SMTP_STARTTLS=0
-export SMTP_SSL=0
 
 .venv/bin/python -m uvicorn blackbox.api:app --host 127.0.0.1 --port 8000 &
 API_PID=$!
@@ -81,7 +59,7 @@ curl -fsS http://127.0.0.1:8000/api/health >/dev/null 2>&1 || fail "The backend 
 printf '\nBlack Box is running in real mode:\n'
 printf '  App:     http://127.0.0.1:5173\n'
 printf '  API:     http://127.0.0.1:8000\n'
-printf '  Mailpit: http://127.0.0.1:8025\n'
+printf '  Email:   SMTP settings from .env\n'
 printf 'Press Ctrl+C to stop all services.\n\n'
 
 npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173

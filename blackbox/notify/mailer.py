@@ -27,18 +27,19 @@ class Mailer:
         message.add_alternative(rendered.html, subtype="html")
         return message
 
+    def _authenticate(self, smtp: smtplib.SMTP) -> None:
+        if self.settings.SMTP_STARTTLS and not self.settings.SMTP_SSL:
+            smtp.starttls()
+        if self.settings.SMTP_USER:
+            smtp.login(self.settings.SMTP_USER, self.settings.SMTP_PASSWORD)
+
     def send(self, recipients: list[str], rendered: RenderedEmail) -> None:
         message = self._message(recipients, rendered)
         last_error: Exception | None = None
         for attempt in range(3):
             try:
                 with self._connection() as smtp:
-                    if self.settings.SMTP_STARTTLS and not self.settings.SMTP_SSL:
-                        smtp.starttls()
-                    if self.settings.SMTP_USER:
-                        smtp.login(
-                            self.settings.SMTP_USER, self.settings.SMTP_PASSWORD
-                        )
+                    self._authenticate(smtp)
                     smtp.send_message(message)
                 return
             except (OSError, smtplib.SMTPException) as error:
@@ -51,6 +52,7 @@ class Mailer:
     def check_connection(self) -> tuple[bool, str | None]:
         try:
             with self._connection() as smtp:
+                self._authenticate(smtp)
                 smtp.noop()
             return True, None
         except (OSError, smtplib.SMTPException) as error:

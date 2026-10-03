@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Keyboard, X } from "lucide-react";
+import { ChevronDown, Keyboard, Menu, X } from "lucide-react";
 import {
   Navigate,
   NavLink,
@@ -85,7 +85,7 @@ function Shell() {
           <Popover
             closeOnContentClick
             trigger={
-              <button className="flex h-9 max-w-[220px] items-center gap-2 rounded-control border border-rule bg-panel px-3 text-left text-sm">
+              <button className="flex h-9 max-w-[calc(100vw-9.5rem)] items-center gap-2 rounded-control border border-rule bg-panel px-3 text-left text-sm sm:max-w-[220px]">
                 <span className="truncate font-medium">{workspaceDetails[workspace].name}</span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-graphite" />
               </button>
@@ -104,7 +104,7 @@ function Shell() {
               ))}
             </span>
           </Popover>
-          <nav className="flex h-full min-w-0 items-center gap-3 overflow-x-auto sm:gap-5">
+          <nav className="hidden h-full min-w-0 items-center gap-5 md:flex">
             {links.map(([to, label]) => (
               <NavLink
                 key={to}
@@ -119,6 +119,34 @@ function Shell() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <span className="md:hidden">
+              <Popover
+                closeOnContentClick
+                trigger={
+                  <button
+                    aria-label="Open navigation"
+                    className="grid h-9 w-9 place-items-center rounded-control border border-rule bg-panel"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </button>
+                }
+              >
+                <nav className="grid min-w-48 gap-1">
+                  {links.map(([to, label]) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      end={to === "/"}
+                      className={({ isActive }) =>
+                        `rounded-control px-3 py-2 text-sm font-medium ${isActive ? "bg-rule-soft text-ink" : "text-graphite hover:bg-rule-soft/60"}`
+                      }
+                    >
+                      {label}
+                    </NavLink>
+                  ))}
+                </nav>
+              </Popover>
+            </span>
             <span className="rounded-chip bg-rule-soft px-2.5 py-1 text-xs">
               {import.meta.env.VITE_USE_MOCKS === "true"
                 ? "Demo data"
@@ -132,6 +160,7 @@ function Shell() {
             <button
               aria-label="Keyboard shortcuts"
               onClick={() => setShortcuts(true)}
+              className="hidden sm:block"
             >
               <Keyboard className="h-4 w-4 text-graphite" />
             </button>

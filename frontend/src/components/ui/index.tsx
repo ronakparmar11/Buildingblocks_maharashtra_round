@@ -484,9 +484,12 @@ export const KpiRow = ({
 }: {
   items: { value: string; label: string }[];
 }) => (
-  <div className="grid divide-x divide-rule border-y border-rule bg-panel sm:grid-cols-5">
+  <div className="grid grid-cols-2 border-y border-rule bg-panel sm:grid-cols-5">
     {items.map((item) => (
-      <div key={item.label} className="p-5">
+      <div
+        key={item.label}
+        className="border-b border-r border-rule p-4 even:border-r-0 last:col-span-2 last:border-b-0 last:border-r-0 sm:col-span-1 sm:border-b-0 sm:border-r sm:p-5 sm:even:border-r sm:last:col-span-1 sm:last:border-r-0"
+      >
         <strong className="font-mono text-2xl">{item.value}</strong>
         <p className="mt-1 max-w-36 text-sm text-graphite">{item.label}</p>
       </div>

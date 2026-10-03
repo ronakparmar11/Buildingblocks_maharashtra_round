@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     SMTP_SSL: int = 0
     SMTP_FROM: str = "Black Box <alerts@blackbox.local>"
     APP_BASE_URL: str = "http://localhost:5173"
-    NOTIFY_DEFAULT_EMAIL: str = "support-ai@nimbu.local"
+    NOTIFY_DEFAULT_EMAIL: str = ""
     NOTIFY_THROTTLE_MINUTES: int = 30
     DIGEST_HOUR_LOCAL: int = 9
     SEED: int = 42
