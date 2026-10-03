@@ -67,8 +67,8 @@ export default function LiveLabPage() {
   const [target, setTarget] = useState("");
   const live = useLiveRun();
   const [runId, setRunId] = useState<string>();
-  const run = useRun(runId);
-  const diagnosis = useDiagnosis(runId, Boolean(runId));
+  const run = useRun(runId, true);
+  const diagnosis = useDiagnosis(runId, Boolean(run.data));
   const targets = useFaultTargets(taskId);
   const [reveal, setReveal] = useState(-1);
   const [fixJob, setFixJob] = useState<string>();

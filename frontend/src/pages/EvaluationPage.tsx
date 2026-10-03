@@ -38,6 +38,40 @@ type EvalView = {
   proof_cost: { bisect: number; linear: number; verified: number };
   fixes: { top1: number; top3: number };
 };
+type EvaluationRow = {
+  set?: string;
+  method?: string;
+  fault_type?: string;
+  top_1?: number;
+  top_3?: number;
+  mrr?: number;
+  n_runs?: number;
+};
+type EvaluationArtifact = {
+  kpis: {
+    top_1: number;
+    latency_ms: number;
+    top1_support?: number;
+  };
+  tables: {
+    baselines: EvaluationRow[];
+    lofo: EvaluationRow[];
+    per_fault: EvaluationRow[];
+  };
+  replay: { avg_pct_reused: number };
+  bisect: { avg_replays: number; avg_steps: number; n_labels: number };
+  repair: {
+    status?: string;
+    success_top_1?: number;
+    success_top_3?: number;
+  };
+};
+const setKeys: Record<string, string> = {
+  "Seen failure types": "A",
+  "Held-out failure types": "B",
+  "Natural failures": "C",
+  "Support conversations": "support",
+};
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 export default function EvaluationPage() {
   const result = useEval();
@@ -55,8 +89,59 @@ export default function EvaluationPage() {
     );
   if (result.isError || !result.data)
     return <ErrorState onRetry={() => result.refetch()} />;
-  const data = result.data as unknown as EvalView;
-  if (!data.baselines?.length)
+  const raw = result.data as unknown as EvalView | EvaluationArtifact;
+  const artifact = "tables" in raw ? raw : undefined;
+  const modelRows = artifact?.tables.baselines.filter(
+    (row) => row.method === "Model",
+  );
+  const data: EvalView = artifact
+    ? {
+        test_questions: (modelRows ?? [])
+          .filter((row) => row.set !== "support")
+          .reduce((total, row) => total + (row.n_runs ?? 0), 0),
+        headline: {
+          top1_seen:
+            modelRows?.find((row) => row.set === "A")?.top_1 ??
+            artifact.kpis.top_1,
+          top1_heldout:
+            modelRows?.find((row) => row.set === "B")?.top_1 ?? 0,
+          top1_natural:
+            modelRows?.find((row) => row.set === "C")?.top_1 ?? 0,
+          reused: artifact.replay.avg_pct_reused,
+          latency_ms: artifact.kpis.latency_ms,
+        },
+        baselines: artifact.tables.baselines
+          .filter((row) => row.set === setKeys[set])
+          .map((row) => ({
+            name: row.method ?? "Unknown",
+            top1: row.top_1 ?? 0,
+            top3: row.top_3 ?? 0,
+          })),
+        lofo: artifact.tables.lofo
+          .filter((row) => row.top_1 !== undefined)
+          .map((row) => ({
+            name: row.fault_type ?? "Unknown",
+            top1: row.top_1 ?? 0,
+            top3: row.top_3 ?? 0,
+            mrr: row.mrr ?? 0,
+          })),
+        by_fault: artifact.tables.per_fault.map((row) => ({
+          name: row.fault_type ?? "Unknown",
+          accuracy: row.top_1 ?? 0,
+          heldout: false,
+        })),
+        proof_cost: {
+          bisect: artifact.bisect.avg_replays,
+          linear: artifact.bisect.avg_steps,
+          verified: artifact.bisect.n_labels > 0 ? 1 : 0,
+        },
+        fixes: {
+          top1: artifact.repair.success_top_1 ?? 0,
+          top3: artifact.repair.success_top_3 ?? 0,
+        },
+      }
+    : (raw as EvalView);
+  if (!data.baselines.length)
     return <EmptyState title="No evaluation results are available yet." />;
   const factor =
     set === "Seen failure types"
@@ -68,8 +153,8 @@ export default function EvaluationPage() {
           : 0.68;
   const baselines = data.baselines.map((item) => ({
     ...item,
-    top1: Math.round(item.top1 * factor * 100),
-    top3: Math.round(item.top3 * factor * 100),
+    top1: Math.round(item.top1 * (artifact ? 1 : factor) * 100),
+    top3: Math.round(item.top3 * (artifact ? 1 : factor) * 100),
   }));
   const faultData = data.by_fault.map((item) => ({
     ...item,
@@ -122,7 +207,7 @@ export default function EvaluationPage() {
           </div>
           {set === "Support conversations" && (
             <p className="mb-3 border-l-[3px] border-orange pl-3 text-sm">
-              Trained on a public Wikipedia benchmark. Dropped onto a support bot it had never seen. It still finds the cause {baselines[0]?.top1}% of the time.
+              Trained on a public Wikipedia benchmark. Dropped onto a support bot it had never seen. It still finds the cause {baselines.find((item) => item.name === "Model")?.top1 ?? 0}% of the time.
             </p>
           )}
           <div
@@ -195,7 +280,7 @@ export default function EvaluationPage() {
         <section className="border-b border-rule bg-panel p-5">
           <h2 className="heading text-lg">Failure types it never trained on</h2>
           <p className="mb-4 text-sm text-graphite">Leave-one-out evaluation</p>
-          <table className="w-full text-sm">
+          {data.lofo.length ? <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-rule text-xs text-graphite">
                 <th className="py-2 text-left font-medium">Failure type</th>
@@ -220,11 +305,11 @@ export default function EvaluationPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table> : <p className="py-12 text-sm text-graphite">No leave-one-out results have been generated yet.</p>}
         </section>
         <section className="border-b border-rule bg-panel p-5">
           <h2 className="heading text-lg">Accuracy by failure type</h2>
-          <div
+          {faultData.length ? <div
             className="mt-4 h-64"
             role="img"
             aria-label="Accuracy by failure type"
@@ -252,8 +337,8 @@ export default function EvaluationPage() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-advisory">■ Never seen in training</p>
+          </div> : <p className="py-12 text-sm text-graphite">No per-failure results have been generated yet.</p>}
+          {!artifact && faultData.length > 0 && <p className="text-xs text-advisory">■ Never seen in training</p>}
           <table className="sr-only">
             <caption>Accuracy by failure type</caption>
             <tbody>
@@ -282,7 +367,7 @@ export default function EvaluationPage() {
                   <div
                     className={`h-full ${color}`}
                     style={{
-                      width: `${(Number(value) / data.proof_cost.linear) * 100}%`,
+                      width: `${data.proof_cost.linear > 0 ? (Number(value) / data.proof_cost.linear) * 100 : 0}%`,
                     }}
                   />
                 </div>
@@ -290,21 +375,26 @@ export default function EvaluationPage() {
             ))}
           </div>
           <p className="mt-8 text-md">
-            Labels verified:{" "}
-            <strong className="font-mono">
-              {pct(data.proof_cost.verified)}
-            </strong>
+            {artifact ? (
+              <><strong className="font-mono">{artifact.bisect.n_labels}</strong> labels available</>
+            ) : (
+              <>Labels verified: <strong className="font-mono">{pct(data.proof_cost.verified)}</strong></>
+            )}
           </p>
         </section>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-rule bg-panel p-5 text-md">
-        <p>
-          Fixes that worked:{" "}
-          <strong className="font-mono">{pct(data.fixes.top1)}</strong> using
-          the top suspect,{" "}
-          <strong className="font-mono">{pct(data.fixes.top3)}</strong> using
-          the top 3
-        </p>
+        {artifact?.repair.status === "not_run" ? (
+          <p>Repair evaluation has not been run yet.</p>
+        ) : (
+          <p>
+            Fixes that worked:{" "}
+            <strong className="font-mono">{pct(data.fixes.top1)}</strong> using
+            the top suspect,{" "}
+            <strong className="font-mono">{pct(data.fixes.top3)}</strong> using
+            the top 3
+          </p>
+        )}
         <Link to="/?origin=repair" className="text-sm text-advisory">
           See fix attempts
         </Link>

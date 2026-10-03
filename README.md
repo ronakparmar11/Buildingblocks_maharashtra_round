@@ -76,15 +76,23 @@ make install
 .venv/bin/bb features build
 .venv/bin/bb train
 .venv/bin/bb eval --judge-limit 30
-make api                      # http://127.0.0.1:8000
-make web                      # http://127.0.0.1:5173
+./start.sh                    # App, API, and Mailpit together
 ```
 
-After prewarming prepared scenarios, run the offline presentation stack with:
+`start.sh` runs the real development stack at `http://127.0.0.1:5173`, with the
+API at `http://127.0.0.1:8000` and Mailpit at `http://127.0.0.1:8025`. It uses
+the configured LLM provider and SQLite database. Install Mailpit with
+`brew install mailpit` if it is not already available.
+
+For an offline presentation using pre-recorded LLM cassettes, use the separate
+demo stack:
 
 ```bash
 make demo                     # http://127.0.0.1:4173
 ```
+
+`make demo` sets `BLACKBOX_DEMO_MODE=1`; it is intentionally not a live-backend
+verification command.
 
 ## Tech
 

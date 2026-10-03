@@ -146,7 +146,7 @@ def test_overview_incident_detail_and_patch(business_client: TestClient) -> None
 
     listed = business_client.get("/api/incidents?workspace=nimbu")
     assert listed.json()["total"] == 1
-    detail = business_client.get("/api/incidents/nimbu-incident")
+    detail = business_client.get("/api/incidents/nimbu-incident?workspace=nimbu")
     assert detail.status_code == 200
     assert detail.json()["runs"][0] == {
         **detail.json()["runs"][0],
@@ -155,19 +155,52 @@ def test_overview_incident_detail_and_patch(business_client: TestClient) -> None
         "correct_answer": "7 days",
     }
     patched = business_client.patch(
-        "/api/incidents/nimbu-incident",
+        "/api/incidents/nimbu-incident?workspace=nimbu",
         json={"status": "investigating", "owner": "Asha", "note": "Reviewing"},
     )
     assert patched.status_code == 200
     assert patched.json()["status"] == "investigating"
     assert patched.json()["owner"] == "Asha"
     invalid = business_client.patch(
-        "/api/incidents/nimbu-incident",
+        "/api/incidents/nimbu-incident?workspace=nimbu",
         json={"status": "reopened", "owner": "Should not persist"},
     )
     assert invalid.status_code == 422
-    detail_after_rejection = business_client.get("/api/incidents/nimbu-incident")
+    detail_after_rejection = business_client.get(
+        "/api/incidents/nimbu-incident?workspace=nimbu"
+    )
     assert detail_after_rejection.json()["incident"]["owner"] == "Asha"
+
+
+def test_incident_endpoints_are_workspace_scoped(
+    business_client: TestClient,
+) -> None:
+    assert (
+        business_client.get(
+            "/api/incidents/nimbu-incident?workspace=hotpot"
+        ).status_code
+        == 404
+    )
+    assert (
+        business_client.patch(
+            "/api/incidents/nimbu-incident?workspace=hotpot",
+            json={"owner": "Wrong workspace"},
+        ).status_code
+        == 404
+    )
+    assert (
+        business_client.post(
+            "/api/incidents/nimbu-incident/verify-fix?workspace=hotpot",
+            json={"repair_run_id": "nimbu-api-run"},
+        ).status_code
+        == 404
+    )
+    assert (
+        business_client.post(
+            "/api/incidents/nimbu-incident/notify?workspace=hotpot"
+        ).status_code
+        == 404
+    )
 
 
 def test_conversation_category_and_incident_link(business_client: TestClient) -> None:

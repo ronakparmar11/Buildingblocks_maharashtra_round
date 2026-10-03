@@ -14,9 +14,9 @@ export const useRuns = (query = "") => {
   const { workspace } = useWorkspace();
   return useQuery({ queryKey: ["runs", workspace, query], queryFn: () => apiGet<T.RunListResponse>(scoped(`/runs?${query}`, workspace)) });
 };
-export const useRun = (id?: string) => {
+export const useRun = (id?: string, waitForCreation = false) => {
   const { workspace } = useWorkspace();
-  return useQuery({ queryKey: ["run", workspace, id], queryFn: () => apiGet<T.RunDetailResponse>(scoped(`/runs/${id}`, workspace)), enabled: Boolean(id), retry: (failureCount, error) => error instanceof ApiError && error.status === 404 && failureCount < 8, retryDelay: 500 });
+  return useQuery({ queryKey: ["run", workspace, id], queryFn: () => apiGet<T.RunDetailResponse>(scoped(`/runs/${id}`, workspace)), enabled: Boolean(id), retry: (failureCount, error) => error instanceof ApiError && error.status === 404 && failureCount < (waitForCreation ? 60 : 8), retryDelay: 500 });
 };
 export const useDiagnosis = (id?: string, enabled = true) => {
   const { workspace } = useWorkspace();
@@ -75,10 +75,22 @@ export const useIncidents = (query = "") => {
   const { workspace } = useWorkspace();
   return useQuery({ queryKey: ["incidents", workspace, query], queryFn: () => apiGet<T.IncidentListResponse>(scoped(`/incidents?${query}`, workspace)) });
 };
-export const useIncident = (id?: string) => useQuery({ queryKey: ["incident", id], queryFn: () => apiGet<T.IncidentDetailResponse>(`/incidents/${id}`), enabled: Boolean(id) });
-export const usePatchIncident = (id: string) => useMutation({ mutationFn: (body: T.IncidentPatchRequest) => apiPatch<T.IncidentSummary>(`/incidents/${id}`, body) });
-export const useVerifyIncident = (id: string) => useMutation({ mutationFn: (body: T.VerifyFixRequest) => apiPost<T.JobCreatedResponse>(`/incidents/${id}/verify-fix`, body) });
-export const useNotifyIncident = (id: string) => useMutation({ mutationFn: () => apiPost<T.NotificationIdResponse>(`/incidents/${id}/notify`) });
+export const useIncident = (id?: string) => {
+  const { workspace } = useWorkspace();
+  return useQuery({ queryKey: ["incident", workspace, id], queryFn: () => apiGet<T.IncidentDetailResponse>(scoped(`/incidents/${id}`, workspace)), enabled: Boolean(id) });
+};
+export const usePatchIncident = (id: string) => {
+  const { workspace } = useWorkspace();
+  return useMutation({ mutationFn: (body: T.IncidentPatchRequest) => apiPatch<T.IncidentSummary>(scoped(`/incidents/${id}`, workspace), body) });
+};
+export const useVerifyIncident = (id: string) => {
+  const { workspace } = useWorkspace();
+  return useMutation({ mutationFn: (body: T.VerifyFixRequest) => apiPost<T.JobCreatedResponse>(scoped(`/incidents/${id}/verify-fix`, workspace), body) });
+};
+export const useNotifyIncident = (id: string) => {
+  const { workspace } = useWorkspace();
+  return useMutation({ mutationFn: () => apiPost<T.NotificationIdResponse>(scoped(`/incidents/${id}/notify`, workspace)) });
+};
 export const useNotificationStatus = () => useQuery({ queryKey: ["notification-status"], queryFn: () => apiGet<T.NotificationStatusResponse>("/notifications/status") });
 export const useTestNotification = () => useMutation({ mutationFn: (body: T.NotificationTestRequest) => apiPost<T.NotificationTestResponse>("/notifications/test", body) });
 export const useRecipients = () => {

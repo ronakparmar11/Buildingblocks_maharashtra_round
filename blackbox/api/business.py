@@ -70,10 +70,10 @@ WORKSPACES = {
 }
 
 
-def _incident_or_404(incident_id: str) -> Incident:
+def _incident_or_404(incident_id: str, workspace: str) -> Incident:
     with get_session() as session:
         incident = session.get(Incident, incident_id)
-        if incident is None:
+        if incident is None or incident.workspace != workspace:
             raise HTTPException(status_code=404, detail="Incident not found")
         session.expunge(incident)
         return incident
@@ -226,10 +226,12 @@ def list_incidents(
 
 
 @router.get("/incidents/{incident_id}", response_model=IncidentDetailResponse)
-def get_incident(incident_id: str) -> IncidentDetailResponse:
+def get_incident(
+    incident_id: str, workspace: str = "hotpot"
+) -> IncidentDetailResponse:
     with get_session() as session:
         incident = session.get(Incident, incident_id)
-        if incident is None:
+        if incident is None or incident.workspace != workspace:
             raise HTTPException(status_code=404, detail="Incident not found")
         representative = session.get(Run, incident.representative_run_id)
         predictions = list(
@@ -295,11 +297,11 @@ def get_incident(incident_id: str) -> IncidentDetailResponse:
 
 @router.patch("/incidents/{incident_id}", response_model=IncidentSummary)
 def patch_incident(
-    incident_id: str, request: IncidentPatchRequest
+    incident_id: str, request: IncidentPatchRequest, workspace: str = "hotpot"
 ) -> IncidentSummary:
     with get_session() as session:
         incident = session.get(Incident, incident_id)
-        if incident is None:
+        if incident is None or incident.workspace != workspace:
             raise HTTPException(status_code=404, detail="Incident not found")
         if (
             request.status is not None
@@ -345,9 +347,9 @@ def patch_incident(
     "/incidents/{incident_id}/verify-fix", response_model=JobCreatedResponse
 )
 def verify_incident_fix(
-    incident_id: str, request: VerifyFixRequest
+    incident_id: str, request: VerifyFixRequest, workspace: str = "hotpot"
 ) -> JobCreatedResponse:
-    _incident_or_404(incident_id)
+    _incident_or_404(incident_id, workspace)
     return JobCreatedResponse(
         job_id=submit_job(
             lambda: verify_fix(incident_id, request.repair_run_id)
@@ -358,8 +360,10 @@ def verify_incident_fix(
 @router.post(
     "/incidents/{incident_id}/notify", response_model=NotificationIdResponse
 )
-def notify_incident(incident_id: str) -> NotificationIdResponse:
-    incident = _incident_or_404(incident_id)
+def notify_incident(
+    incident_id: str, workspace: str = "hotpot"
+) -> NotificationIdResponse:
+    incident = _incident_or_404(incident_id, workspace)
     row = evaluate_rules("incident_opened", incident.workspace, incident)
     if row is None:
         raise HTTPException(
