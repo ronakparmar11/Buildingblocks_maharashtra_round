@@ -17,6 +17,8 @@ from blackbox.agent.agent import run_agent
 from blackbox.config import get_settings
 from blackbox.corpus.embed import build_embeddings
 from blackbox.corpus.hotpot import build_hotpot_corpus
+from blackbox.corpus.nimbu import build_nimbu_corpus
+from blackbox.corpus.paths import workspace_data_dir
 from blackbox.corpus.retriever import get_retriever
 from blackbox.datagen.pipeline import (
     DataGenerationPipeline,
@@ -41,7 +43,7 @@ from blackbox.replay.engine import replay as replay_run
 from blackbox.sdk.cassette import Cassette as CassetteStore
 from blackbox.sdk.context import ExecutionContext, Override
 from blackbox.sdk.tracer import Tracer
-from blackbox.store.db import get_session, init_db
+from blackbox.store.db import get_session, init_db, migrate_database
 from blackbox.store.models import Cassette, Fault, Label, Prediction, Run, Step, Task
 from blackbox.store.repo import get_run, get_steps, get_task, list_tasks
 
@@ -74,6 +76,18 @@ def db_init() -> None:
     typer.echo("Database initialized.")
 
 
+@db_app.command("migrate")
+def db_migrate() -> None:
+    changes, backup_path = migrate_database(Path(get_settings().DB_PATH))
+    if backup_path is not None:
+        typer.echo(f"Backup: {backup_path}")
+    if changes:
+        for change in changes:
+            typer.echo(f"Changed: {change}")
+    else:
+        typer.echo("Database is already at schema v2; no changes made.")
+
+
 @db_app.command("stats")
 def db_stats() -> None:
     init_db()
@@ -84,9 +98,14 @@ def db_stats() -> None:
 
 
 @corpus_app.command("build")
-def corpus_build(force: bool = typer.Option(False, "--force")) -> None:
+def corpus_build(
+    workspace: str = typer.Option("hotpot", "--workspace"),
+    force: bool = typer.Option(False, "--force"),
+) -> None:
+    if workspace not in {"hotpot", "nimbu"}:
+        raise typer.BadParameter("Workspace must be 'hotpot' or 'nimbu'")
     settings = get_settings()
-    data_dir = Path(settings.DATA_DIR)
+    data_dir = workspace_data_dir(settings, workspace)
     outputs = [
         data_dir / "passages.jsonl",
         data_dir / "embeddings.npy",
@@ -96,14 +115,21 @@ def corpus_build(force: bool = typer.Option(False, "--force")) -> None:
         typer.echo("Corpus files already exist; use --force to rebuild.")
         return
 
-    tasks, passages = build_hotpot_corpus(settings)
-    build_embeddings(settings)
+    if workspace == "nimbu":
+        tasks, passages = build_nimbu_corpus(settings)
+    else:
+        tasks, passages = build_hotpot_corpus(settings)
+    build_embeddings(settings, workspace=workspace)
     typer.echo(f"Built {len(tasks)} tasks and {len(passages)} passages.")
 
 
 @corpus_app.command("search")
-def corpus_search(query: str, k: int = typer.Option(3, min=1)) -> None:
-    for result in get_retriever().search(query, k=k):
+def corpus_search(
+    query: str,
+    workspace: str = typer.Option("hotpot", "--workspace"),
+    k: int = typer.Option(3, min=1),
+) -> None:
+    for result in get_retriever(workspace).search(query, k=k):
         typer.echo(f"{result['score']:.3f}\t{result['title']}\t{result['pid']}")
 
 

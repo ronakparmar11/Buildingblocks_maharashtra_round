@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from blackbox.config import Settings, get_settings
+from blackbox.corpus.paths import workspace_data_dir
 
 if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
@@ -32,9 +32,11 @@ def embed_texts(texts: list[str]) -> np.ndarray:
     return np.asarray(embeddings, dtype=np.float32)
 
 
-def build_embeddings(settings: Settings | None = None) -> np.ndarray:
+def build_embeddings(
+    settings: Settings | None = None, workspace: str = "hotpot"
+) -> np.ndarray:
     settings = settings or get_settings()
-    data_dir = Path(settings.DATA_DIR)
+    data_dir = workspace_data_dir(settings, workspace)
     with (data_dir / "passages.jsonl").open(encoding="utf-8") as file:
         passages = [json.loads(line) for line in file if line.strip()]
 
