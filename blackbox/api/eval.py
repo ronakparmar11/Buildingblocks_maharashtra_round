@@ -11,7 +11,8 @@ router = APIRouter()
 
 
 @router.get("/eval", response_model=EvalResponse)
-def get_evaluation() -> EvalResponse:
+def get_evaluation(workspace: str = "hotpot") -> EvalResponse:
+    del workspace
     if mock_mode():
         return EvalResponse.model_validate(load_fixture("mock_api.json")["eval"])
     path = Path(get_settings().ARTIFACTS_DIR) / "eval.json"

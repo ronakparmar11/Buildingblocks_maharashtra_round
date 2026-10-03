@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
 
 class APIModel(BaseModel):
@@ -275,3 +275,204 @@ class HealthResponse(APIModel):
     demo_mode: bool
     model_version: str
     n_runs: int
+
+
+class WorkspaceSummary(APIModel):
+    id: str
+    name: str
+    description: str
+    n_runs: int
+
+
+class IncidentSummary(APIModel):
+    incident_id: str
+    title: str
+    severity: str
+    status: str
+    n_runs: int
+    est_cost_inr: int
+    category: str
+    cause_step_name: str
+    first_seen: datetime
+    last_seen: datetime
+    owner: str
+
+
+class IncidentListResponse(APIModel):
+    items: list[IncidentSummary]
+    total: int
+
+
+class DailyMetric(APIModel):
+    date: str
+    conversations: int
+    wrong: int
+    rate: float
+
+
+class OverviewKpis(APIModel):
+    conversations: int
+    wrong: int
+    failure_rate: float
+    open_incidents: int
+    estimated_cost_inr: int
+
+
+class OverviewResponse(APIModel):
+    headline: str
+    kpis: OverviewKpis
+    daily: list[DailyMetric]
+    open_incidents: list[IncidentSummary]
+    by_step_name: list[FleetStepCount]
+    by_reason: list[FleetReasonCount]
+    threshold: float
+
+
+class IncidentEventRecord(APIModel):
+    event_id: str
+    incident_id: str
+    kind: str
+    text: str
+    created_at: datetime
+    meta: dict[str, Any]
+
+
+class IncidentRunSummary(RunSummary):
+    customer_message: str
+    agent_reply: str
+    correct_answer: str
+
+
+class NotificationSummary(APIModel):
+    notification_id: str
+    workspace: str
+    rule_kind: str
+    incident_id: str | None
+    recipients: list[str]
+    subject: str
+    status: str
+    error: str | None
+    created_at: datetime
+    sent_at: datetime | None
+
+
+class IncidentDetailResponse(APIModel):
+    incident: IncidentSummary
+    explanation: str
+    representative_run: RunSummary | None
+    reasons: list[DiagnosisReason]
+    runs: list[IncidentRunSummary]
+    events: list[IncidentEventRecord]
+    notifications: list[NotificationSummary]
+
+
+class IncidentPatchRequest(APIModel):
+    status: Literal["open", "investigating", "fix_verified", "resolved", "reopened"] | None = None
+    owner: str | None = None
+    note: str | None = None
+
+
+class VerifyFixRequest(APIModel):
+    repair_run_id: str
+
+
+class NotificationIdResponse(APIModel):
+    notification_id: str
+
+
+class NotificationStatusResponse(APIModel):
+    configured: bool
+    host: str
+    port: int
+    connected: bool
+    sender: str
+    last_error: str | None
+    demo_mode_blocked: bool
+
+
+def _validate_email(value: str) -> str:
+    local, separator, domain = value.strip().rpartition("@")
+    if not separator or not local or "." not in domain or domain.startswith("."):
+        raise ValueError("Enter a valid email address")
+    return value.strip()
+
+
+def _validate_optional_email(value: str | None) -> str | None:
+    return _validate_email(value) if value is not None else None
+
+
+class NotificationTestRequest(APIModel):
+    to: str
+
+    _email = field_validator("to")(_validate_email)
+
+
+class NotificationTestResponse(APIModel):
+    status: str
+    error: str | None
+
+
+class RecipientCreate(APIModel):
+    name: str
+    email: str
+    workspace: str = "nimbu"
+    active: bool = True
+    rules: list[str] = Field(default_factory=list)
+
+    _email = field_validator("email")(_validate_email)
+
+
+class RecipientUpdate(APIModel):
+    name: str | None = None
+    email: str | None = None
+    active: bool | None = None
+    rules: list[str] | None = None
+
+    _email = field_validator("email")(_validate_optional_email)
+
+
+class RecipientResponse(APIModel):
+    recipient_id: str
+    name: str
+    email: str
+    workspace: str
+    active: bool
+    rules: list[str]
+
+
+class RuleUpdate(APIModel):
+    enabled: bool
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class RuleResponse(APIModel):
+    rule_id: str
+    workspace: str
+    kind: str
+    enabled: bool
+    params: dict[str, Any]
+
+
+class BusinessSettingsRequest(APIModel):
+    cost_per_wrong_answer_inr: int = Field(ge=0)
+
+
+class BusinessSettingsResponse(APIModel):
+    cost_per_wrong_answer_inr: int
+
+
+class NotificationListResponse(APIModel):
+    items: list[NotificationSummary]
+
+
+class NotificationPreviewResponse(APIModel):
+    subject: str
+    html: str
+    text: str
+
+
+class SimulateRequest(APIModel):
+    workspace: str = "nimbu"
+    n: int = Field(default=30, ge=1, le=500)
+    failure_rate: float = Field(default=0.35, ge=0.0, le=1.0)
+    seed: int = 7

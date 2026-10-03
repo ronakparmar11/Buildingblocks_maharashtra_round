@@ -14,12 +14,15 @@ router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse)
-def get_health() -> HealthResponse:
+def get_health(workspace: str = "hotpot") -> HealthResponse:
     settings = get_settings()
     if mock_mode():
         model_version = load_fixture("mock_api.json")["diagnosis"]["model_version"]
         return HealthResponse(
-            status="ok", demo_mode=True, model_version=model_version, n_runs=1
+            status="ok",
+            demo_mode=True,
+            model_version=model_version,
+            n_runs=int(workspace == "hotpot"),
         )
     metadata_path = Path(settings.ARTIFACTS_DIR) / "model_meta.json"
     model_version = "unavailable"
@@ -27,7 +30,13 @@ def get_health() -> HealthResponse:
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         model_version = str(metadata.get("version", "unavailable"))
     with get_session() as session:
-        n_runs = int(session.exec(select(func.count()).select_from(Run)).one())
+        n_runs = int(
+            session.exec(
+                select(func.count())
+                .select_from(Run)
+                .where(Run.workspace == workspace)
+            ).one()
+        )
     return HealthResponse(
         status="ok",
         demo_mode=bool(settings.BLACKBOX_DEMO_MODE),

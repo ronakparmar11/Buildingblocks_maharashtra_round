@@ -19,18 +19,22 @@ router = APIRouter()
 
 
 @router.get("/tasks", response_model=TaskListResponse)
-def get_tasks(split: str = "test", q: str = "") -> TaskListResponse:
+def get_tasks(
+    split: str = "test", q: str = "", workspace: str = "hotpot"
+) -> TaskListResponse:
     if mock_mode():
         task = load_fixture("sample_run.json")["task"]
         items = (
             [task]
-            if split == task["split"]
+            if workspace == "hotpot"
+            and split == task["split"]
             and q.casefold() in task["question"].casefold()
             else []
         )
         return TaskListResponse(items)
     with get_session() as session:
         tasks = list_tasks(session, split=split)
+        tasks = [task for task in tasks if task.workspace == workspace]
         if q:
             tasks = [
                 task for task in tasks if q.casefold() in task.question.casefold()
@@ -39,10 +43,12 @@ def get_tasks(split: str = "test", q: str = "") -> TaskListResponse:
 
 
 @router.get("/tasks/{task_id}/fault-targets", response_model=FaultTargetsResponse)
-def get_fault_targets(task_id: str) -> FaultTargetsResponse:
+def get_fault_targets(
+    task_id: str, workspace: str = "hotpot"
+) -> FaultTargetsResponse:
     if mock_mode():
         sample = load_fixture("sample_run.json")
-        if task_id != sample["task"]["task_id"]:
+        if workspace != "hotpot" or task_id != sample["task"]["task_id"]:
             raise HTTPException(status_code=404, detail="Task not found")
         return FaultTargetsResponse(
             targets=[
@@ -59,7 +65,8 @@ def get_fault_targets(task_id: str) -> FaultTargetsResponse:
     from blackbox.faults.targets import applicable_targets, latest_clean_run
 
     with get_session() as session:
-        if session.get(Task, task_id) is None:
+        task = session.get(Task, task_id)
+        if task is None or task.workspace != workspace:
             raise HTTPException(status_code=404, detail="Task not found")
         clean_run = latest_clean_run(session, task_id)
         if clean_run is None:
@@ -73,15 +80,19 @@ def get_fault_targets(task_id: str) -> FaultTargetsResponse:
 
 
 @router.post("/live/run", response_model=LiveRunResponse)
-def start_live_run(request: LiveRunRequest) -> LiveRunResponse:
+def start_live_run(
+    request: LiveRunRequest, workspace: str = "hotpot"
+) -> LiveRunResponse:
     if mock_mode():
+        if workspace != "hotpot":
+            raise HTTPException(status_code=404, detail="Task not found")
         run_id = "r_demo_live"
         submit_job(lambda: {"run_id": run_id}, job_id=run_id)
         return LiveRunResponse(run_id=run_id)
 
     with get_session() as session:
         task = session.get(Task, request.task_id)
-        if task is None:
+        if task is None or task.workspace != workspace:
             raise HTTPException(status_code=404, detail="Task not found")
 
     if request.fault is None:
@@ -139,7 +150,7 @@ def _run_clean(task_id: str, run_id: str) -> dict[str, str]:
             origin="live",
             demo_mode=bool(get_settings().BLACKBOX_DEMO_MODE),
             tracer=Tracer(session, Cassette(session), llm=_llm_client()),
-            retriever=get_retriever(),
+            retriever=get_retriever(task.workspace),
         )
         run_agent(task, context)
         return {"run_id": run_id}

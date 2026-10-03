@@ -22,6 +22,7 @@ router = APIRouter()
 
 @router.get("/runs", response_model=RunListResponse)
 def list_run_records(
+    workspace: str = "hotpot",
     outcome: str | None = None,
     origin: str | None = None,
     split: str | None = None,
@@ -33,7 +34,8 @@ def list_run_records(
     if mock_mode():
         sample = load_fixture("sample_run.json")
         matches = (
-            (outcome is None or outcome == sample["run"]["outcome"])
+            workspace == "hotpot"
+            and (outcome is None or outcome == sample["run"]["outcome"])
             and (origin is None or origin == sample["run"]["origin"])
             and (split is None or split == sample["task"]["split"])
             and (fault_type is None or fault_type == sample["fault"]["fault_type"])
@@ -43,7 +45,13 @@ def list_run_records(
         return RunListResponse(items=items[:limit], total=int(matches))
 
     with get_session() as session:
-        runs = list(session.exec(select(Run).order_by(col(Run.created_at).desc())).all())
+        runs = list(
+            session.exec(
+                select(Run)
+                .where(Run.workspace == workspace)
+                .order_by(col(Run.created_at).desc())
+            ).all()
+        )
         matched: list[Run] = []
         for run in runs:
             task = session.get(Task, run.task_id)
@@ -70,16 +78,16 @@ def list_run_records(
 
 
 @router.get("/runs/{run_id}", response_model=RunDetailResponse)
-def get_run_detail(run_id: str) -> RunDetailResponse:
+def get_run_detail(run_id: str, workspace: str = "hotpot") -> RunDetailResponse:
     if mock_mode():
         sample = load_fixture("sample_run.json")
-        if run_id != sample["run"]["run_id"]:
+        if workspace != "hotpot" or run_id != sample["run"]["run_id"]:
             raise HTTPException(status_code=404, detail="Run not found")
         return RunDetailResponse.model_validate(sample)
 
     with get_session() as session:
         run = session.get(Run, run_id)
-        if run is None:
+        if run is None or getattr(run, "workspace", workspace) != workspace:
             raise HTTPException(status_code=404, detail="Run not found")
         task = session.get(Task, run.task_id)
         if task is None:
@@ -96,17 +104,18 @@ def get_run_detail(run_id: str) -> RunDetailResponse:
 
 
 @router.get("/runs/{run_id}/diagnosis", response_model=DiagnosisResponse)
-def get_diagnosis(run_id: str) -> DiagnosisResponse:
+def get_diagnosis(run_id: str, workspace: str = "hotpot") -> DiagnosisResponse:
     if mock_mode():
         sample = load_fixture("sample_run.json")
-        if run_id != sample["run"]["run_id"]:
+        if workspace != "hotpot" or run_id != sample["run"]["run_id"]:
             raise HTTPException(status_code=404, detail="Run not found")
         return DiagnosisResponse.model_validate(
             load_fixture("mock_api.json")["diagnosis"]
         )
 
     with get_session() as session:
-        if session.get(Run, run_id) is None:
+        run = session.get(Run, run_id)
+        if run is None or getattr(run, "workspace", workspace) != workspace:
             raise HTTPException(status_code=404, detail="Run not found")
         predictions = get_predictions(session, run_id)
         if predictions:
@@ -115,7 +124,7 @@ def get_diagnosis(run_id: str) -> DiagnosisResponse:
 
     try:
         return DiagnosisResponse.model_validate(diagnose(run_id))
-    except (OSError, ValueError) as error:
+    except (KeyError, OSError, ValueError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 

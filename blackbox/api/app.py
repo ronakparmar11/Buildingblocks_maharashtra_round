@@ -4,8 +4,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from blackbox.api import compare, eval, fleet, health, lab, replay, runs
+from blackbox.api import business, compare, eval, fleet, health, lab, replay, runs
 from blackbox.api.common import mock_mode
+from blackbox.notify.scheduler import scheduler
+from blackbox.notify.worker import worker
 from blackbox.store.db import init_db
 
 
@@ -13,7 +15,14 @@ from blackbox.store.db import init_db
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     if not mock_mode():
         init_db()
-    yield
+        worker.start()
+        scheduler.start()
+    try:
+        yield
+    finally:
+        if not mock_mode():
+            scheduler.stop()
+            worker.stop()
 
 
 app = FastAPI(title="Black Box", lifespan=lifespan)
@@ -33,5 +42,6 @@ for api_router in (
     fleet.router,
     lab.router,
     health.router,
+    business.router,
 ):
     app.include_router(api_router, prefix="/api")

@@ -30,6 +30,18 @@ from blackbox.store.models import Run
 router = APIRouter()
 
 
+def _require_workspace(run_id: str, workspace: str) -> None:
+    if mock_mode():
+        sample = load_fixture("sample_run.json")
+        if workspace != "hotpot" or run_id != sample["run"]["run_id"]:
+            raise HTTPException(status_code=404, detail="Run not found")
+        return
+    with get_session() as session:
+        run = session.get(Run, run_id)
+        if run is None or run.workspace != workspace:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+
 @dataclass
 class JobState:
     status: str = "queued"
@@ -75,8 +87,23 @@ def wait_for_job(job_id: str) -> dict[str, Any]:
     return _futures[job_id].result()
 
 
+def update_job(job_id: str, progress: float, result: dict[str, Any]) -> None:
+    with _jobs_lock:
+        state = _jobs.get(job_id)
+        if state is None or state.status not in {"queued", "running"}:
+            return
+        _jobs[job_id] = JobState(
+            status="running",
+            progress=max(0.0, min(progress, 0.99)),
+            result=result,
+        )
+
+
 @router.post("/runs/{run_id}/replay", response_model=ReplayResponse)
-def replay_run(run_id: str, request: ReplayRequest) -> ReplayResponse:
+def replay_run(
+    run_id: str, request: ReplayRequest, workspace: str = "hotpot"
+) -> ReplayResponse:
+    _require_workspace(run_id, workspace)
     if mock_mode():
         sample = load_fixture("sample_run.json")
         if run_id != sample["run"]["run_id"]:
@@ -129,7 +156,10 @@ def replay_run(run_id: str, request: ReplayRequest) -> ReplayResponse:
 
 
 @router.get("/runs/{run_id}/blast-radius", response_model=BlastRadiusResponse)
-def get_blast_radius(run_id: str, step_key: str) -> BlastRadiusResponse:
+def get_blast_radius(
+    run_id: str, step_key: str, workspace: str = "hotpot"
+) -> BlastRadiusResponse:
+    _require_workspace(run_id, workspace)
     if mock_mode():
         sample = load_fixture("sample_run.json")
         keys = [step["step_key"] for step in sample["steps"]]
@@ -161,7 +191,10 @@ def _repair_payload(run_id: str, top_k: int) -> dict[str, Any]:
 
 
 @router.post("/runs/{run_id}/repair", response_model=RepairResponse)
-def repair_run(run_id: str, request: RepairRequest) -> RepairResponse:
+def repair_run(
+    run_id: str, request: RepairRequest, workspace: str = "hotpot"
+) -> RepairResponse:
+    _require_workspace(run_id, workspace)
     try:
         return RepairResponse.model_validate(_repair_payload(run_id, request.top_k))
     except ValueError as error:
@@ -169,14 +202,18 @@ def repair_run(run_id: str, request: RepairRequest) -> RepairResponse:
 
 
 @router.post("/runs/{run_id}/repair/jobs", response_model=JobCreatedResponse)
-def repair_run_job(run_id: str, request: RepairRequest) -> JobCreatedResponse:
+def repair_run_job(
+    run_id: str, request: RepairRequest, workspace: str = "hotpot"
+) -> JobCreatedResponse:
+    _require_workspace(run_id, workspace)
     return JobCreatedResponse(
         job_id=submit_job(lambda: _repair_payload(run_id, request.top_k))
     )
 
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
-def get_job(job_id: str) -> JobResponse:
+def get_job(job_id: str, workspace: str = "hotpot") -> JobResponse:
+    del workspace
     with _jobs_lock:
         state = _jobs.get(job_id)
         if state is None:
