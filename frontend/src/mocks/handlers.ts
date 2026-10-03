@@ -29,11 +29,20 @@ import { fleet } from "./fleet";
 import { getMockDetail, getMockDiagnosis, runs } from "./generator";
 import { tasks } from "./hero-runs";
 
-const jobs = new Map<string, { started: number; type: "repair" | "simulate" }>();
+const jobs = new Map<string, { started: number; type: "repair" | "simulate" | "verify" }>();
 const wait = () =>
   new Promise((resolve) => setTimeout(resolve, 250 + Math.random() * 350));
 const summary = (id: string) =>
   runs.find((run) => run.run_id === id) ?? runs[0];
+const refundMessages = [
+  "can i return my lamp after two weeks?",
+  "refund abhi tak account mein nahi aaya",
+  "what is the return window for a bedsheet?",
+  "can I send this vase back after 10 days?",
+  "how many days for prepaid refund please",
+  "the app says my refund is approved, when will it arrive?",
+  "is the 30-day return policy still valid?",
+];
 export async function mockRequest<T>(
   method: string,
   path: string,
@@ -77,7 +86,7 @@ export async function mockRequest<T>(
         { feature: "archived_policy", text: "An archived help article ranked first.", evidence: "Return policy (2024) — archived", contribution: 0.62 },
         { feature: "answer_support", text: "The reply contradicts the current policy.", evidence: "30 days instead of 7 days", contribution: 0.24 },
       ],
-      runs: related.map((run) => ({ ...run, customer_message: run.question, agent_reply: "Yes, you can return it within 30 days.", correct_answer: "Returns are accepted within 7 days of delivery." })),
+      runs: related.map((run, index) => ({ ...run, question: refundMessages[index % refundMessages.length], customer_message: refundMessages[index % refundMessages.length], agent_reply: "Yes, you can return it within 30 days.", correct_answer: "Returns are accepted within 7 days of delivery." })),
       events: [
         { event_id: "event_1", incident_id: incident.incident_id, kind: "opened", text: "Incident opened.", created_at: incident.first_seen, meta: {} },
         { event_id: "event_2", incident_id: incident.incident_id, kind: "notified", text: "Notification sent to support-ai@nimbu.local.", created_at: incident.last_seen, meta: { notification_id: "mail_1" } },
@@ -94,7 +103,7 @@ export async function mockRequest<T>(
     return { notification_id: `mail_${Date.now()}` } as T;
   if (/^\/incidents\/[^/]+\/verify-fix$/.test(pathname)) {
     const id = `job_${Date.now()}`;
-    jobs.set(id, { started: Date.now(), type: "repair" });
+    jobs.set(id, { started: Date.now(), type: "verify" });
     return { job_id: id } as T;
   }
   if (pathname === "/notifications/status")
@@ -231,6 +240,17 @@ export async function mockRequest<T>(
           emails_sent: progress > 0.7 ? 1 : 0,
         },
       } as T & JobResponse;
+    if (job.type === "verify")
+      return {
+        status: progress >= 1 ? "completed" : "running",
+        progress,
+        result: {
+          n_total: 14,
+          n_passed: progress >= 1 ? 12 : Math.floor(progress * 12),
+          run_ids: nimbuRuns.slice(0, 14).map((run) => run.run_id),
+          tokens_saved: progress >= 1 ? 18420 : Math.floor(progress * 18420),
+        },
+      } as T & JobResponse;
     const all = [
       {
         step_key: "q1/retrieve#0",
@@ -252,7 +272,7 @@ export async function mockRequest<T>(
       },
       {
         step_key: "q1/retrieve#0",
-        strategy: "widen_search",
+        strategy: "current_only",
         run_id: "r_scott_fixed",
         outcome: "pass",
         n_executed: 4,

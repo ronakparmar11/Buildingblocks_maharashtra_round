@@ -23,6 +23,8 @@ import ComparePage from "./pages/ComparePage";
 import EvaluationPage from "./pages/EvaluationPage";
 import LiveLabPage from "./pages/LiveLabPage";
 import OverviewPage from "./pages/OverviewPage";
+import IncidentsPage from "./pages/IncidentsPage";
+import IncidentDetailPage from "./pages/IncidentDetailPage";
 
 function LegacyRunRedirect() {
   const { id } = useParams();
@@ -145,7 +147,8 @@ function Shell() {
       <main>
         <Routes>
           <Route path="/" element={<OverviewPage />} />
-          <Route path="/incidents" element={<Placeholder title="Incidents" empty="No open incidents. Wrong answers will be grouped here as they happen." />} />
+          <Route path="/incidents" element={<IncidentsPage />} />
+          <Route path="/incidents/:id" element={<IncidentDetailPage />} />
           <Route path="/conversations" element={<RunsPage />} />
           <Route path="/conversations/:id" element={<RunDetailPage />} />
           <Route path="/runs" element={<LegacyRunRedirect />} />
