@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.progress import Progress
 from rich.table import Table
+from rich.text import Text
 from sqlalchemy import func
 from sqlmodel import Session, select
 
@@ -536,13 +537,31 @@ def diagnose_command(run_id: str) -> None:
         result = diagnose(run_id)
     except ValueError as error:
         raise typer.BadParameter(str(error)) from error
-    table = Table("Rank", "Step", "Index", "Score")
+    table = Table("Rank", "Step", "Index", "Score", "Likely causes")
     for row in result["ranking"]:
+        reasons = Text()
+        for index, reason in enumerate(row["reasons"]):
+            if index:
+                reasons.append("\n")
+            reasons.append(f"{reason['text']}\n", style="bold")
+            reasons.append(f"{reason['evidence']}\n", style="dim")
+            reasons.append(
+                f"{reason['feature']}  +{reason['contribution']:.3f}",
+                style="cyan",
+            )
         table.add_row(
-            str(row["rank"]), str(row["step_key"]), str(row["idx"]), f"{row['score']:.4f}"
+            str(row["rank"]),
+            str(row["step_key"]),
+            str(row["idx"]),
+            f"{row['score']:.4f}",
+            reasons,
         )
-    Console().print(table)
-    typer.echo(f"Diagnosis latency: {result['latency_ms']:.1f} ms")
+    console = Console()
+    console.print(table)
+    console.print(
+        f"[bold]Model[/bold] {result['model_version']}  "
+        f"[bold]Latency[/bold] {result['latency_ms']:.1f} ms"
+    )
 
 
 @app.command()
