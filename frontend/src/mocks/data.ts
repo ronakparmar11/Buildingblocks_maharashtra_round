@@ -32,13 +32,13 @@ export const tasks: TaskRecord[] = [
     distractor_pids: ["p_wrong_director"],
   },
   {
-    task_id: "task_magazine",
-    question: "Which magazine was started first, Time or Life?",
-    gold_answer: "Time",
+    task_id: "task_natural",
+    question: "Were Greta Gerwig and Noah Baumbach born in the same country?",
+    gold_answer: "yes",
     qtype: "comparison",
     level: "easy",
     split: "test",
-    gold_titles: ["Time", "Life"],
+    gold_titles: ["Greta Gerwig", "Noah Baumbach"],
     distractor_pids: [],
   },
 ];
@@ -215,9 +215,238 @@ const detail = (
   };
 };
 
+const customDetail = (
+  runId: string,
+  task: TaskRecord,
+  steps: StepRecord[],
+  origin: string,
+  finalAnswer: string,
+  faultStep: string | null,
+  culpritStep: string,
+): RunDetailResponse => ({
+  run: {
+    run_id: runId,
+    task_id: task.task_id,
+    origin,
+    parent_run_id: null,
+    final_answer: finalAnswer,
+    outcome: "fail",
+    score_f1: 0,
+    n_steps: steps.length,
+    n_reused: 0,
+    n_executed: steps.length,
+    tokens_total: 3260,
+    tokens_saved: 0,
+    latency_ms: 3980,
+    created_at: new Date(now - 360000).toISOString(),
+    replay_spec: null,
+  },
+  task,
+  steps,
+  edges: steps.flatMap((item) =>
+    item.deps.map((source) => ({ source, target: item.step_key })),
+  ),
+  fault: faultStep
+    ? {
+        run_id: runId,
+        fault_type: "wrong_extraction",
+        step_key: faultStep,
+        params: { answer: "David Fincher" },
+      }
+    : null,
+  label: {
+    run_id: runId,
+    culprit_step_key: culpritStep,
+    method: faultStep ? "bisect" : "counterfactual",
+    verified: true,
+    confidence: faultStep ? 1 : 0.83,
+    n_replays: 4,
+    matches_injection: faultStep ? faultStep === culpritStep : null,
+  },
+});
+
+const filmSteps = (runId: string): StepRecord[] => [
+  step(runId, 0, "plan", "plan", [], "bridge: film → director → birthplace", {
+    type: "bridge",
+    subquestions: [
+      { id: "q1", text: "Who directed The Fall?", deps: [] },
+      {
+        id: "q2",
+        text: "In which country was that director born?",
+        deps: ["q1"],
+      },
+    ],
+  }),
+  step(
+    runId,
+    1,
+    "q1/retrieve#0",
+    "retrieve",
+    ["plan"],
+    "3 passages: The Fall, Tarsem Singh",
+    {
+      passages: [
+        {
+          pid: "p_fall",
+          title: "The Fall",
+          text: "The Fall is a 2006 film directed by Tarsem Singh.",
+          score: 0.9,
+        },
+      ],
+    },
+  ),
+  step(
+    runId,
+    2,
+    "q1/extract#0",
+    "extract",
+    ["q1/retrieve#0"],
+    "David Fincher",
+    {
+      answer: "David Fincher",
+      evidence_pid: "p_fall",
+      evidence_sentence: "The Fall is a 2006 film directed by Tarsem Singh.",
+    },
+  ),
+  step(runId, 3, "q1/check#0", "check", ["q1/extract#0"], "unsupported", {
+    supported: false,
+    reason: "David Fincher is absent from the evidence.",
+  }),
+  step(
+    runId,
+    4,
+    "q2/retrieve#0",
+    "retrieve",
+    ["q1/extract#0"],
+    "3 passages: David Fincher",
+    {
+      passages: [
+        {
+          pid: "p_fincher",
+          title: "David Fincher",
+          text: "David Fincher was born in Denver, Colorado, United States.",
+          score: 0.88,
+        },
+      ],
+    },
+  ),
+  step(
+    runId,
+    5,
+    "q2/extract#0",
+    "extract",
+    ["q2/retrieve#0"],
+    "United States",
+    {
+      answer: "United States",
+      evidence_pid: "p_fincher",
+      evidence_sentence: "David Fincher was born in Denver, Colorado.",
+    },
+  ),
+  step(runId, 6, "q2/check#0", "check", ["q2/extract#0"], "supported", {
+    supported: true,
+  }),
+  step(
+    runId,
+    7,
+    "synthesize",
+    "synthesize",
+    ["q1/check#0", "q2/check#0"],
+    "United States",
+    { answer: "United States" },
+  ),
+];
+
+const naturalSteps = (runId: string): StepRecord[] => [
+  step(runId, 0, "plan", "plan", [], "comparison: q1, q2", {
+    type: "comparison",
+    subquestions: [
+      { id: "q1", text: "Where was Greta Gerwig born?", deps: [] },
+      { id: "q2", text: "Where was Noah Baumbach born?", deps: [] },
+    ],
+  }),
+  step(
+    runId,
+    1,
+    "q1/retrieve#0",
+    "retrieve",
+    ["plan"],
+    "3 passages: Greta Gerwig",
+    {
+      passages: [
+        {
+          pid: "p_gerwig",
+          title: "Greta Gerwig",
+          text: "Greta Gerwig was born in Sacramento, California, United States.",
+          score: 0.93,
+        },
+      ],
+    },
+  ),
+  step(runId, 2, "q1/extract#0", "extract", ["q1/retrieve#0"], "American", {
+    answer: "American",
+    evidence_sentence: "Born in California, United States.",
+  }),
+  step(runId, 3, "q1/check#0", "check", ["q1/extract#0"], "supported", {
+    supported: true,
+  }),
+  step(
+    runId,
+    4,
+    "q2/retrieve#0",
+    "retrieve",
+    ["plan"],
+    "3 passages: Noah Baumbach",
+    {
+      passages: [
+        {
+          pid: "p_baumbach",
+          title: "Noah Baumbach",
+          text: "Noah Baumbach was born in Brooklyn, New York, United States.",
+          score: 0.91,
+        },
+      ],
+    },
+  ),
+  step(runId, 5, "q2/extract#0", "extract", ["q2/retrieve#0"], "American", {
+    answer: "American",
+    evidence_sentence: "Born in New York, United States.",
+  }),
+  step(runId, 6, "q2/check#0", "check", ["q2/extract#0"], "supported", {
+    supported: true,
+  }),
+  step(
+    runId,
+    7,
+    "synthesize",
+    "synthesize",
+    ["q1/check#0", "q2/check#0"],
+    "no",
+    { answer: "no", rationale: "The birth cities are different." },
+  ),
+];
+
 export const details: Record<string, RunDetailResponse> = {
   r_scott_fail: detail("r_scott_fail", "fail", true),
   r_scott_fixed: detail("r_scott_fixed", "pass", false, "r_scott_fail"),
+  r_film_fail: customDetail(
+    "r_film_fail",
+    tasks[1],
+    filmSteps("r_film_fail"),
+    "fault",
+    "United States",
+    "q1/extract#0",
+    "q1/extract#0",
+  ),
+  r_natural_fail: customDetail(
+    "r_natural_fail",
+    tasks[2],
+    naturalSteps("r_natural_fail"),
+    "organic",
+    "no",
+    null,
+    "synthesize",
+  ),
 };
 export const diagnoses: Record<string, DiagnosisResponse> = {
   r_scott_fail: {
@@ -273,6 +502,123 @@ export const diagnoses: Record<string, DiagnosisResponse> = {
             text: "The final answer follows the conflicting sub-answers.",
             evidence: "British vs American → no",
             contribution: 0.18,
+          },
+        ],
+      },
+    ],
+  },
+  r_film_fail: {
+    run_id: "r_film_fail",
+    model_version: "ranker-v3",
+    latency_ms: 1.4,
+    ranking: [
+      {
+        step_key: "q1/extract#0",
+        score: 0.94,
+        rank: 1,
+        reasons: [
+          {
+            feature: "evidence_mismatch",
+            text: "The extracted director contradicts the evidence sentence.",
+            evidence:
+              "Evidence says “directed by Tarsem Singh”; output says “David Fincher”",
+            contribution: 0.52,
+          },
+          {
+            feature: "check_failure",
+            text: "The next check marked this answer unsupported.",
+            evidence: "David Fincher is absent from the evidence",
+            contribution: 0.27,
+          },
+          {
+            feature: "downstream_dependency",
+            text: "The second search used this incorrect person.",
+            evidence: "q2/retrieve#0 searched for David Fincher",
+            contribution: 0.15,
+          },
+        ],
+      },
+      {
+        step_key: "q2/retrieve#0",
+        score: 0.61,
+        rank: 2,
+        reasons: [
+          {
+            feature: "wrong_entity",
+            text: "Retrieval followed the wrong bridge entity.",
+            evidence: "Searched David Fincher instead of Tarsem Singh",
+            contribution: 0.35,
+          },
+        ],
+      },
+      {
+        step_key: "synthesize",
+        score: 0.28,
+        rank: 3,
+        reasons: [
+          {
+            feature: "wrong_chain",
+            text: "The final answer uses the incorrect bridge chain.",
+            evidence: "United States came from the wrong director",
+            contribution: 0.2,
+          },
+        ],
+      },
+    ],
+  },
+  r_natural_fail: {
+    run_id: "r_natural_fail",
+    model_version: "ranker-v3",
+    latency_ms: 1.1,
+    ranking: [
+      {
+        step_key: "synthesize",
+        score: 0.93,
+        rank: 1,
+        reasons: [
+          {
+            feature: "subanswer_conflict",
+            text: "The final answer doesn't match any sub-answer.",
+            evidence: "American + American should produce “yes”, not “no”",
+            contribution: 0.55,
+          },
+          {
+            feature: "unsupported_rationale",
+            text: "The rationale compares cities instead of countries.",
+            evidence: "Sacramento and Brooklyn are both in the United States",
+            contribution: 0.24,
+          },
+          {
+            feature: "upstream_agreement",
+            text: "Both checked sub-answers agree and are supported.",
+            evidence: "q1: American; q2: American",
+            contribution: 0.14,
+          },
+        ],
+      },
+      {
+        step_key: "q2/extract#0",
+        score: 0.19,
+        rank: 2,
+        reasons: [
+          {
+            feature: "normal_step",
+            text: "This answer is supported by its passage.",
+            evidence: "Born in New York, United States",
+            contribution: 0.08,
+          },
+        ],
+      },
+      {
+        step_key: "q1/extract#0",
+        score: 0.17,
+        rank: 3,
+        reasons: [
+          {
+            feature: "normal_step",
+            text: "This answer is supported by its passage.",
+            evidence: "Born in California, United States",
+            contribution: 0.07,
           },
         ],
       },
@@ -359,7 +705,114 @@ runs.unshift(
     predicted_culprit: null,
     parent_run_id: "r_scott_fail",
   },
+  {
+    run_id: "r_film_fail",
+    task_id: tasks[1].task_id,
+    question: tasks[1].question,
+    origin: "fault",
+    outcome: "fail",
+    score_f1: 0,
+    n_steps: 8,
+    created_at: details.r_film_fail.run.created_at,
+    predicted_culprit: { step_key: "q1/extract#0", score: 0.94 },
+    parent_run_id: null,
+  },
+  {
+    run_id: "r_natural_fail",
+    task_id: tasks[2].task_id,
+    question: tasks[2].question,
+    origin: "organic",
+    outcome: "fail",
+    score_f1: 0,
+    n_steps: 8,
+    created_at: details.r_natural_fail.run.created_at,
+    predicted_culprit: { step_key: "synthesize", score: 0.93 },
+    parent_run_id: null,
+  },
 );
+
+export function getMockDetail(runId: string): RunDetailResponse {
+  if (details[runId]) return details[runId];
+  const summary = runs.find((item) => item.run_id === runId) ?? runs[0];
+  const failed = summary.outcome === "fail";
+  const generated = detail(summary.run_id, failed ? "fail" : "pass", failed);
+  const task: TaskRecord = {
+    ...generated.task,
+    task_id: summary.task_id,
+    question: summary.question,
+    gold_answer: failed ? "expected answer" : generated.task.gold_answer,
+  };
+  return {
+    ...generated,
+    run: {
+      ...generated.run,
+      task_id: summary.task_id,
+      origin: summary.origin,
+      parent_run_id: summary.parent_run_id,
+      outcome: summary.outcome,
+      score_f1: summary.score_f1,
+      n_steps: summary.n_steps,
+      created_at: summary.created_at,
+    },
+    task,
+    fault: null,
+    label: summary.predicted_culprit
+      ? {
+          run_id: summary.run_id,
+          culprit_step_key: summary.predicted_culprit.step_key,
+          method: "counterfactual",
+          verified: true,
+          confidence: 0.81,
+          n_replays: 4,
+          matches_injection: null,
+        }
+      : null,
+  };
+}
+
+export function getMockDiagnosis(runId: string): DiagnosisResponse {
+  if (diagnoses[runId]) return diagnoses[runId];
+  const summary = runs.find((item) => item.run_id === runId);
+  if (!summary?.predicted_culprit)
+    return {
+      run_id: runId,
+      model_version: "ranker-v3",
+      latency_ms: 1.2,
+      ranking: [],
+    };
+  return {
+    run_id: runId,
+    model_version: "ranker-v3",
+    latency_ms: 1.2,
+    ranking: [
+      {
+        step_key: summary.predicted_culprit.step_key,
+        score: summary.predicted_culprit.score,
+        rank: 1,
+        reasons: [
+          {
+            feature: "trace_anomaly",
+            text: "This step differs most from successful runs.",
+            evidence: "Its trace features are outside the normal range",
+            contribution: 0.46,
+          },
+          {
+            feature: "downstream_effect",
+            text: "Later answers depend on this output.",
+            evidence: "The dependency route continues to synthesize",
+            contribution: 0.25,
+          },
+          {
+            feature: "counterfactual_gain",
+            text: "Changing this step is most likely to change the outcome.",
+            evidence: "Counterfactual replay improved the answer",
+            contribution: 0.17,
+          },
+        ],
+      },
+    ],
+  };
+}
 export const evaluation: EvalResponse = {
   test_questions: 120,
   headline: {

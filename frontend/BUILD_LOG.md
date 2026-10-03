@@ -81,11 +81,12 @@
 - Files changed: page empty/loading states, Runs drill-down filter display, static styleguide token classes, semantic `StepKey`, drawer/inspector cleanup, graph attribution, Vite chunk splitting.
 - Decisions: Part A only; mocks remain the development default and Part B was intentionally skipped. React Flow attribution remains visible to avoid a license warning.
 - Validation: `npm run lint` passed; `npm run build` passed without warnings; automated browser audit at 1366×768 with 125% zoom and 1920×1080 found no horizontal overflow or console errors and no `/api/` requests.
-- Runs: pass — 302 mock runs, 50-row page, loading geometry, keyboard controls, filters, and projector table checked.
+- Runs: pass — 304 mock runs, 50-row page, loading geometry, keyboard controls, filters, and projector table checked.
 - Run detail: pass — diagnosis playback completed, selected `q1/retrieve#0`, responsive graph/tape/inspector screenshot checked.
 - Compare: pass — outcomes, compact route, first diff, and console-clean semantics checked.
 - Evaluation: pass — KPI/chart/table layout and labels checked at projector and wide sizes.
 - Fleet: pass — responsive layout and cause drill-down behavior checked.
 - Live lab: pass — prepared failure loop reached “Fix found” well under 60 seconds.
 - Styleguide: pass — all static color/type tokens and shared component states render.
+- Hero mock audit: pass — all three prepared failures have distinct detailed traces and three-reason diagnoses; generated rows now open matching run/task details instead of falling back to the Scott trace.
 - Remaining manual checks: subjective readability from four meters, reduced-motion emulation, and screen-reader announcement quality.

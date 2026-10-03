@@ -13,7 +13,14 @@ import type {
   RunListResponse,
   TaskRecord,
 } from "../api/types";
-import { details, diagnoses, evaluation, fleet, runs, tasks } from "./data";
+import {
+  evaluation,
+  fleet,
+  getMockDetail,
+  getMockDiagnosis,
+  runs,
+  tasks,
+} from "./data";
 
 const jobs = new Map<string, number>();
 const wait = () =>
@@ -61,15 +68,10 @@ export async function mockRequest<T>(
   }
   const diagnosisMatch = pathname.match(/^\/runs\/([^/]+)\/diagnosis$/);
   if (diagnosisMatch)
-    return (diagnoses[diagnosisMatch[1]] ?? {
-      run_id: diagnosisMatch[1],
-      model_version: "ranker-v3",
-      latency_ms: 1.2,
-      ranking: [],
-    }) as T & DiagnosisResponse;
+    return getMockDiagnosis(diagnosisMatch[1]) as T & DiagnosisResponse;
   const blastMatch = pathname.match(/^\/runs\/([^/]+)\/blast-radius$/);
   if (blastMatch) {
-    const detail = details[blastMatch[1]] ?? details.r_scott_fail;
+    const detail = getMockDetail(blastMatch[1]);
     const key = url.searchParams.get("step_key") ?? detail.steps[0].step_key;
     const affected = new Set([key]);
     let changed = true;
@@ -152,14 +154,12 @@ export async function mockRequest<T>(
     } as T & JobResponse;
   }
   const runMatch = pathname.match(/^\/runs\/([^/]+)$/);
-  if (runMatch)
-    return (details[runMatch[1]] ?? details.r_scott_fail) as T &
-      RunDetailResponse;
+  if (runMatch) return getMockDetail(runMatch[1]) as T & RunDetailResponse;
   if (pathname === "/compare") {
     const a = url.searchParams.get("a") ?? "r_scott_fail";
     const b = url.searchParams.get("b") ?? "r_scott_fixed";
-    const ad = details[a] ?? details.r_scott_fail;
-    const bd = details[b] ?? details.r_scott_fixed;
+    const ad = getMockDetail(a);
+    const bd = getMockDetail(b);
     const keys = [
       ...new Set([
         ...ad.steps.map((item) => item.step_key),
