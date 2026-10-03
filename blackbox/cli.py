@@ -1,4 +1,6 @@
+import json
 from pathlib import Path
+from typing import Annotated
 from uuid import uuid4
 
 import typer
@@ -17,8 +19,10 @@ from blackbox.faults.targets import applicable_targets, latest_clean_run
 from blackbox.llm.base import LLMClient
 from blackbox.llm.gemini import GeminiLLM
 from blackbox.llm.groq import GroqLLM
+from blackbox.replay.compare import compare as compare_runs
+from blackbox.replay.engine import replay as replay_run
 from blackbox.sdk.cassette import Cassette as CassetteStore
-from blackbox.sdk.context import ExecutionContext
+from blackbox.sdk.context import ExecutionContext, Override
 from blackbox.sdk.tracer import Tracer
 from blackbox.store.db import get_session, init_db
 from blackbox.store.models import Cassette, Fault, Label, Prediction, Run, Step, Task
@@ -157,7 +161,9 @@ def run_clean(
             ).all()
         )
         pending = [
-            task for task in list_tasks(session) if task.task_id not in completed_task_ids
+            task
+            for task in list_tasks(session)
+            if task.task_id not in completed_task_ids
         ][:limit]
         runs = [_execute_clean(session, task, llm) for task in pending]
         completed = [run for run in runs if run.outcome in {"pass", "fail"}]
@@ -218,6 +224,85 @@ def faults_inject(
         raise typer.BadParameter(str(error)) from error
     with get_session() as session:
         _print_run(session, run)
+
+
+def _parse_replay_overrides(
+    set_values: list[str], regenerate_keys: list[str]
+) -> dict[str, Override]:
+    overrides = {key: Override(kind="regenerate") for key in regenerate_keys}
+    for value in set_values:
+        if "=" not in value:
+            raise typer.BadParameter("--set must use KEY=path/to/output.json")
+        key, raw_path = value.split("=", 1)
+        if not key or not raw_path:
+            raise typer.BadParameter("--set must use KEY=path/to/output.json")
+        if key in overrides:
+            raise typer.BadParameter(f"Duplicate override for step: {key}")
+        try:
+            output = json.loads(Path(raw_path).read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise typer.BadParameter(
+                f"Cannot read override {raw_path}: {error}"
+            ) from error
+        if not isinstance(output, dict):
+            raise typer.BadParameter(
+                f"Override output must be a JSON object: {raw_path}"
+            )
+        overrides[key] = Override(kind="set_output", output=output)
+    return overrides
+
+
+@app.command("replay")
+def replay_command(
+    run_id: str,
+    set_values: Annotated[
+        list[str] | None, typer.Option("--set", metavar="KEY=FILE")
+    ] = None,
+    regenerate_keys: Annotated[
+        list[str] | None, typer.Option("--regen", metavar="KEY")
+    ] = None,
+    freeze_before_idx: Annotated[
+        int | None, typer.Option("--freeze", min=0, metavar="K")
+    ] = None,
+) -> None:
+    overrides = _parse_replay_overrides(set_values or [], regenerate_keys or [])
+    try:
+        run = replay_run(run_id, overrides, freeze_before_idx)
+    except ValueError as error:
+        raise typer.BadParameter(str(error)) from error
+
+    console = Console()
+    reused_percent = run.n_reused / run.n_steps if run.n_steps else 0.0
+    console.print(
+        f"[bold green]Replay {run.run_id}[/bold green]  "
+        f"outcome=[bold]{run.outcome}[/bold]  "
+        f"[cyan]reused {run.n_reused}/{run.n_steps} ({reused_percent:.0%})[/cyan]  "
+        f"executed {run.n_executed}  tokens saved {run.tokens_saved:,}"
+    )
+
+
+@app.command("compare")
+def compare_command(run_a_id: str, run_b_id: str) -> None:
+    init_db()
+    with get_session() as session:
+        run_a = get_run(session, run_a_id)
+        run_b = get_run(session, run_b_id)
+        if run_a is None:
+            raise typer.BadParameter(f"Unknown run id: {run_a_id}")
+        if run_b is None:
+            raise typer.BadParameter(f"Unknown run id: {run_b_id}")
+        comparison = compare_runs(run_a, run_b)
+
+    console = Console()
+    console.print(
+        f"[bold]Outcome[/bold] {comparison['summary']['outcome']}  "
+        f"first divergence: [yellow]{comparison['first_divergence'] or 'none'}[/yellow]"
+    )
+    table = Table("Step", "Status", "Text diff")
+    for row in comparison["rows"]:
+        diff = " ".join(row["text_diff"])
+        table.add_row(row["step_key"], row["status"], diff)
+    console.print(table)
 
 
 @app.command()
