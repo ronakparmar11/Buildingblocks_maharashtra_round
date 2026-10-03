@@ -47,6 +47,23 @@ def test_get_passage_and_title_search() -> None:
     assert retriever.search_titles("Scot Derrickson", k=1)[0]["pid"] == "p_scott"
 
 
+def test_search_can_exclude_archived_passages() -> None:
+    passages = [
+        {**PASSAGES[0], "status": "archived"},
+        {**PASSAGES[1], "status": "current"},
+    ]
+    retriever = Retriever(
+        passages=passages,
+        embeddings=EMBEDDINGS[:2],
+        embedder=_stub_embedder,
+    )
+
+    assert retriever.search("nationality", k=1)[0]["pid"] == "p_scott"
+    assert retriever.search("nationality", k=1, exclude_archived=True)[0][
+        "pid"
+    ] == "p_ed"
+
+
 def test_sampling_is_balanced_deterministic_and_keeps_inspected_examples() -> None:
     examples = [
         {"id": f"{qtype}-{index}", "type": qtype}

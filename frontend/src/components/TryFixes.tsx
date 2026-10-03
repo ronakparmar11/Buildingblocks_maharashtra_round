@@ -2,10 +2,12 @@ import { Check, LoaderCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useJob, useRepairJob } from "../api/hooks";
+import { t } from "../lib/vocab";
 import type { DiagnosisItem, RepairAttemptResponse } from "../api/types";
 import { Button, Drawer, StatChip } from "./ui";
 
 const names: Record<string, string> = {
+  current_only: "Search current articles only",
   rewrite_query: "Rewrite the search query",
   widen_search: "Widen search to 6 results",
   entity_search: "Search by entity name",
@@ -20,12 +22,14 @@ export default function TryFixes({
   runId,
   ranking,
   onEdit,
+  onFixFound,
 }: {
   open: boolean;
   onClose: () => void;
   runId: string;
   ranking: DiagnosisItem[];
   onEdit: () => void;
+  onFixFound?: (runId: string) => void;
 }) {
   const repair = useRepairJob();
   const [jobId, setJobId] = useState<string>();
@@ -46,9 +50,14 @@ export default function TryFixes({
     attempts?: RepairAttemptResponse[];
   } | null;
   const attempts = result?.attempts ?? [];
+  const winningAttempt = attempts.find((attempt) => attempt.outcome === "pass");
   const done = job.data?.status === "completed";
   const failed = job.data?.status === "failed";
   const settled = done || failed;
+  useEffect(() => {
+    if (done && result?.repaired && result.winning_run_id)
+      onFixFound?.(result.winning_run_id);
+  }, [done, onFixFound, result?.repaired, result?.winning_run_id]);
   return (
     <Drawer open={open} title="Try fixes" onClose={onClose}>
       <p className="mb-6 text-sm text-graphite">
@@ -135,12 +144,12 @@ export default function TryFixes({
       ) : done && result?.repaired ? (
         <div className="mt-6 rounded-panel bg-normal-tint p-4">
           <p className="font-medium">
-            Fix found: wider search (k=6) on {ranking[0]?.step_key}.
+            Fix found: {names[winningAttempt?.strategy ?? ""] ?? "working strategy"} on {ranking[0]?.step_key}.
           </p>
           <div className="mt-4 flex gap-2">
-            <Button variant="ink" onClick={onClose}>
-              Open fixed run
-            </Button>
+            <Link to={`/conversations/${result.winning_run_id}`} onClick={onClose}>
+              <Button variant="ink">Open fixed {t("run")}</Button>
+            </Link>
             <Link to={`/compare?a=${runId}&b=${result.winning_run_id}`}>
               <Button>Compare with original</Button>
             </Link>

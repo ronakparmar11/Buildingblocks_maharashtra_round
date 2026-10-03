@@ -1,3 +1,4 @@
+import { t } from "../lib/vocab";
 import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -13,17 +14,21 @@ import {
 import type { RepairAttemptResponse } from "../api/types";
 import ExecutionRoute from "../components/ExecutionRoute";
 import FdrTape from "../components/FdrTape";
+import TrafficSimulator from "../components/TrafficSimulator";
+import { useWorkspace } from "../context/workspace";
 import {
   Button,
   Combobox,
   EmptyState,
   ErrorState,
   OutcomeChip,
+  SegmentedControl,
   Skeleton,
   StatChip,
 } from "../components/ui";
 
 const failureNames: Record<string, string> = {
+  current_only: "Search current articles only",
   distractor_retrieval: "Distractor retrieval",
   wrong_extraction: "Wrong extraction",
   PLAN_CORRUPT: "Plan corruption",
@@ -32,6 +37,13 @@ const failureNames: Record<string, string> = {
   TRUNCATED_CONTEXT: "Truncated context",
   WRONG_EXTRACTION: "Wrong extraction",
   HALLUCINATED_SYNTHESIS: "Hallucinated synthesis",
+};
+const businessFailureNames: Record<string, string> = {
+  distractor_retrieval: "Search returns an archived article",
+  DISTRACTOR_RETRIEVAL: "Search returns an archived article",
+  wrong_extraction: "Reads the wrong number from the article",
+  WRONG_EXTRACTION: "Reads the wrong number from the article",
+  HALLUCINATED_SYNTHESIS: "Final reply contradicts the facts",
 };
 const StepNumber = ({
   number,
@@ -47,14 +59,16 @@ const StepNumber = ({
   </span>
 );
 export default function LiveLabPage() {
+  const { workspace } = useWorkspace();
+  const [mode, setMode] = useState("One conversation");
   const tasks = useTasks();
   const [taskId, setTaskId] = useState("");
   const [failure, setFailure] = useState("");
   const [target, setTarget] = useState("");
   const live = useLiveRun();
   const [runId, setRunId] = useState<string>();
-  const run = useRun(runId);
-  const diagnosis = useDiagnosis(runId, Boolean(runId));
+  const run = useRun(runId, true);
+  const diagnosis = useDiagnosis(runId, Boolean(run.data));
   const targets = useFaultTargets(taskId);
   const [reveal, setReveal] = useState(-1);
   const [fixJob, setFixJob] = useState<string>();
@@ -113,21 +127,39 @@ export default function LiveLabPage() {
   if (tasks.isLoading)
     return <div className="space-y-5 p-6"><Skeleton className="h-8 w-36"/><div className="grid grid-cols-2 gap-6"><Skeleton className="h-40"/><Skeleton className="h-40"/></div></div>;
   if (tasks.isError) return <ErrorState onRetry={() => tasks.refetch()} />;
-  if (!tasks.data?.length)
+  if (!tasks.data?.length && mode === "One conversation")
     return <EmptyState title="No prepared demo questions are available." />;
   return (
     <div className="mx-auto max-w-[1500px] px-6 py-8 text-md">
       <h1 className="heading text-xl">Live lab</h1>
+      {workspace === "nimbu" && (
+        <div className="mt-5">
+          <SegmentedControl options={["One conversation", "Simulate traffic"]} value={mode} onChange={setMode} />
+        </div>
+      )}
+      {workspace === "nimbu" && mode === "Simulate traffic" ? (
+        <TrafficSimulator />
+      ) : (
+      <>
       <div className="mt-6 grid grid-cols-2 gap-6 max-[900px]:grid-cols-1">
         <section className="flex gap-4 border-b border-rule bg-panel p-5">
           <StepNumber number={1} state={runId ? "done" : "active"} />
           <div className="min-w-0 flex-1">
-            <h2 className="heading text-lg">Pick a question</h2>
+            <h2 className="heading text-lg">Pick a {t("task")}</h2>
             <p className="mb-3 text-sm text-graphite">Prepared for demo</p>
+            {workspace === "nimbu" && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {(tasks.data ?? []).slice(0, 3).map((task) => (
+                  <button key={task.task_id} onClick={() => setTaskId(task.task_id)} className="max-w-full truncate rounded-chip border border-rule bg-panel px-3 py-1.5 text-left text-xs text-advisory">
+                    {task.question}
+                  </button>
+                ))}
+              </div>
+            )}
             <Combobox
               value={taskId}
               onChange={setTaskId}
-              placeholder="Search test questions…"
+              placeholder={`Search ${t("task")}s…`}
               options={(tasks.data ?? []).map((task) => ({
                 value: task.task_id,
                 label: task.question,
@@ -161,7 +193,7 @@ export default function LiveLabPage() {
                   ),
                 ].map((value) => (
                   <option key={value} value={value}>
-                    {failureNames[value] ?? value}
+                    {(workspace === "nimbu" ? businessFailureNames[value] : undefined) ?? failureNames[value] ?? value}
                   </option>
                 ))}
               </select>
@@ -331,10 +363,10 @@ export default function LiveLabPage() {
                   <Button variant="ink">Compare</Button>
                 </Link>
                 <Link
-                  to={`/runs/${runId}`}
+                  to={`/conversations/${runId}`}
                   className="self-center text-sm text-advisory"
                 >
-                  Open full run
+                  Open full {t("run")}
                 </Link>
               </div>
             )}
@@ -343,10 +375,12 @@ export default function LiveLabPage() {
       )}
       {runId && !startedFixes && (
         <div className="mt-4 text-right">
-          <Link to={`/runs/${runId}`} className="text-sm text-advisory">
-            Open full run
+          <Link to={`/conversations/${runId}`} className="text-sm text-advisory">
+            Open full {t("run")}
           </Link>
         </div>
+      )}
+      </>
       )}
     </div>
   );

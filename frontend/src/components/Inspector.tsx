@@ -20,6 +20,8 @@ import {
   StatChip,
   Tabs,
 } from "./ui";
+import { t } from "../lib/vocab";
+import ReasonList from "./ReasonList";
 
 const icons = {
   plan: Map,
@@ -99,6 +101,8 @@ export default function Inspector({
         title: string;
         text: string;
         score: number;
+        status?: string;
+        updated_at?: string;
       }[])
     : [];
   return (
@@ -139,28 +143,8 @@ export default function Inspector({
                 {Math.max(0, (blast.data?.affected.length ?? 1) - 1)} later
                 steps.
               </p>
-              <div className="mt-5 space-y-5">
-                {item.reasons.slice(0, 3).map((reason) => (
-                  <div key={reason.feature}>
-                    <p className="text-md">{reason.text}</p>
-                    <blockquote className="mt-2 border-l-[3px] border-rule pl-3 text-xs text-graphite">
-                      {reason.evidence}
-                    </blockquote>
-                    <div className="mt-3 h-1 bg-rule-soft">
-                      <div
-                        className="h-full bg-caution"
-                        style={{
-                          width: `${Math.min(100, reason.contribution * 180)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-                {!item.reasons.length && (
-                  <p className="text-sm text-graphite">
-                    No explanation reasons were returned for this prediction.
-                  </p>
-                )}
+              <div className="mt-5">
+                <ReasonList reasons={item.reasons} />
               </div>
               <Popover
                 trigger={
@@ -171,7 +155,7 @@ export default function Inspector({
               >
                 The ranker combines trace features such as retrieval support,
                 consistency, and downstream effects. Scores are normalized
-                within this run.
+                within this {t("run")}.
               </Popover>
             </div>
           ) : (
@@ -302,7 +286,7 @@ export default function Inspector({
               </div>
             </section>
             <section>
-              <h3 className="heading mb-2">Final answer</h3>
+              <h3 className="heading mb-2 capitalize">{t("finalAnswer")}</h3>
               <p>{String(state.final ?? "Not set")}</p>
             </section>
           </div>
@@ -367,10 +351,12 @@ export default function Inspector({
                   </StatChip>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <a href={`/runs/${replay.data.run.run_id}`}>
+                  <a href={`/conversations/${replay.data.run.run_id}`}>
                     <Button variant="ink">Open replay</Button>
                   </a>
-                  <a href={replay.data.compare_url}>
+                  <a
+                    href={`/compare?a=${runId}&b=${replay.data.run.run_id}`}
+                  >
                     <Button>Compare with original</Button>
                   </a>
                 </div>

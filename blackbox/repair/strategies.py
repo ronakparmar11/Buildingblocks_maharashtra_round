@@ -11,6 +11,7 @@ WIDEN_SEARCH = "Widen search to 6 results"
 SEARCH_ENTITY = "Search by entity name"
 QUOTE_EVIDENCE = "Quote evidence first, then answer"
 USE_SUBANSWERS = "Use only the sub-answers"
+CURRENT_ARTICLES_ONLY = "Search current articles only"
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,10 @@ def rewrite_search_query(query: str) -> Override:
 
 def widen_search() -> Override:
     return Override(kind="regenerate", params={"k": 6})
+
+
+def search_current_articles_only() -> Override:
+    return Override(kind="regenerate", params={"exclude_archived": True})
 
 
 def search_by_entity_name(entity: str) -> Override:
@@ -65,7 +70,7 @@ def _entity_from_query(query: str) -> str:
 
 
 def candidates_for_step(
-    step: Step, *, rewritten_query: str | None = None
+    step: Step, *, workspace: str = "hotpot", rewritten_query: str | None = None
 ) -> list[RepairCandidate]:
     if step.name == "plan":
         return [
@@ -75,6 +80,10 @@ def candidates_for_step(
     if step.name == "retrieve":
         query = str(step.input.get("query", ""))
         candidates: list[RepairCandidate] = []
+        if workspace == "nimbu":
+            candidates.append(
+                RepairCandidate(CURRENT_ARTICLES_ONLY, search_current_articles_only())
+            )
         if rewritten_query:
             candidates.append(
                 RepairCandidate(REWRITE_QUERY, rewrite_search_query(rewritten_query))

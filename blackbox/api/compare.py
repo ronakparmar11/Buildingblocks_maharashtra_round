@@ -14,15 +14,22 @@ router = APIRouter()
 
 
 @router.get("/compare", response_model=CompareResponse)
-def compare_runs(a: str, b: str) -> CompareResponse:
+def compare_runs(a: str, b: str, workspace: str = "hotpot") -> CompareResponse:
     if mock_mode():
+        if workspace != "hotpot":
+            raise HTTPException(status_code=404, detail="Run not found")
         return _mock_compare(a, b)
     from blackbox.replay.compare import compare
 
     with get_session() as session:
         run_a = session.get(Run, a)
         run_b = session.get(Run, b)
-        if run_a is None or run_b is None:
+        if (
+            run_a is None
+            or run_b is None
+            or run_a.workspace != workspace
+            or run_b.workspace != workspace
+        ):
             raise HTTPException(status_code=404, detail="Run not found")
         result = compare(run_a, run_b)
         return CompareResponse(

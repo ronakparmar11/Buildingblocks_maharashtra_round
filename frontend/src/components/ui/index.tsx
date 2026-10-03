@@ -15,6 +15,7 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from "react";
+import { t } from "../../lib/vocab";
 
 export function Button({
   variant = "secondary",
@@ -70,10 +71,10 @@ export function RunTypeLabel({ origin }: { origin: string }) {
   const labels: Record<string, string> = {
     fault: "Injected failure",
     organic: "Natural failure",
-    clean: "Clean run",
+    clean: `Clean ${t("run")}`,
     replay: "Replay",
     repair: "Fix attempt",
-    live: "Live run",
+    live: `Live ${t("run")}`,
   };
   return (
     <span className="text-xs text-graphite">{labels[origin] ?? origin}</span>
@@ -217,16 +218,21 @@ export function Drawer({
 export function Popover({
   trigger,
   children,
+  closeOnContentClick = false,
 }: {
   trigger: ReactNode;
   children: ReactNode;
+  closeOnContentClick?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <span className="relative inline-block">
       <span onClick={() => setOpen(!open)}>{trigger}</span>
       {open && (
-        <span className="absolute right-0 top-full z-30 mt-2 w-72 rounded-panel border border-rule bg-panel p-4 text-sm shadow-popover">
+        <span
+          onClick={() => closeOnContentClick && setOpen(false)}
+          className="absolute right-0 top-full z-30 mt-2 w-72 rounded-panel border border-rule bg-panel p-4 text-sm shadow-popover"
+        >
           {children}
         </span>
       )}
@@ -307,12 +313,18 @@ export function JsonEditor({
 export function PassageCard({
   passage,
 }: {
-  passage: { title: string; text: string; score: number };
+  passage: { title: string; text: string; score: number; status?: string; updated_at?: string };
 }) {
   return (
     <article className="rounded-node border border-rule bg-panel p-3">
-      <div className="flex justify-between gap-4">
-        <h4 className="heading">{passage.title}</h4>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="heading">{passage.title}</h4>
+            {passage.status === "archived" && <span className="rounded-chip bg-caution-tint px-2 py-0.5 text-xs">Archived</span>}
+          </div>
+          {passage.updated_at && <p className="mt-1 text-xs text-graphite">Updated {new Date(passage.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>}
+        </div>
         <span className="font-mono text-xs">{passage.score.toFixed(2)}</span>
       </div>
       <p className="mt-2 line-clamp-4 text-sm text-graphite">{passage.text}</p>
@@ -363,7 +375,7 @@ export function EmptyState({
   );
 }
 export function ErrorState({
-  message = "Couldn't load this run. The server returned 500. Check that the API is running on port 8000, then reload.",
+  message = `Couldn't load this ${t("run")}. The server returned 500. Check that the API is running on port 8000, then reload.`,
   onRetry,
 }: {
   message?: string;

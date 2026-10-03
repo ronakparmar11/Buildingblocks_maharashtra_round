@@ -111,6 +111,7 @@ class Tracer:
             Run(
                 run_id=ctx.run_id,
                 task_id=ctx.task.task_id,
+                workspace=ctx.task.workspace,
                 origin=ctx.origin,
                 parent_run_id=ctx.source_run_id,
                 final_answer=None,

@@ -2,12 +2,12 @@ import hashlib
 import json
 import random
 from collections.abc import Iterable, Mapping, Sequence
-from pathlib import Path
 from typing import Any
 
 from datasets import load_dataset
 
 from blackbox.config import Settings, get_settings
+from blackbox.corpus.paths import workspace_data_dir
 from blackbox.store.db import get_session, init_db
 from blackbox.store.models import Task
 from blackbox.store.repo import upsert_task
@@ -94,6 +94,8 @@ def build_hotpot_corpus(
         tasks.append(
             Task(
                 task_id=str(example["id"]),
+                workspace="hotpot",
+                category=None,
                 question=str(example["question"]),
                 gold_answer=str(example["answer"]),
                 qtype=str(example["type"]),
@@ -113,7 +115,7 @@ def build_hotpot_corpus(
         for task in tasks:
             upsert_task(session, task)
 
-    data_dir = Path(settings.DATA_DIR)
+    data_dir = workspace_data_dir(settings, "hotpot")
     data_dir.mkdir(parents=True, exist_ok=True)
     passages = list(passages_by_title.values())
     with (data_dir / "passages.jsonl").open("w", encoding="utf-8") as file:

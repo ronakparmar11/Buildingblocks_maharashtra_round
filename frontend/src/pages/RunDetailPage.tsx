@@ -2,6 +2,7 @@ import { Check, Copy, Flag } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useDiagnosis, useRun } from "../api/hooks";
+import { t } from "../lib/vocab";
 import ExecutionRoute from "../components/ExecutionRoute";
 import FdrTape from "../components/FdrTape";
 import Inspector from "../components/Inspector";
@@ -67,23 +68,24 @@ export default function RunDetailPage() {
     return <ErrorState onRetry={() => run.refetch()} />;
   const data = run.data;
   const ranking = diagnosed ? (diagnosis.data?.ranking ?? []) : [];
-  const back = location.state?.from ?? "/";
+  const back = location.state?.from ?? "/conversations";
   return (
     <div className="min-h-[calc(100vh-56px)] bg-paper">
       <header className="border-b border-rule bg-panel px-6 py-5">
         <div className="mx-auto max-w-[1600px]">
           <Link to={back} className="text-sm text-advisory">
-            ← Runs
+            ← <span className="capitalize">{t("runs")}</span>
           </Link>
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0 flex-1">
+              <p className="mb-1 text-sm text-graphite capitalize">{t("question")}</p>
               <h1 className="heading max-w-5xl text-xl min-[1600px]:text-3xl">
                 {data.task.question}
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-                <span className="text-graphite">Expected</span>
+                <span className="text-graphite capitalize">{t("goldAnswer")}</span>
                 <strong>{data.task.gold_answer}</strong>
-                <span className="text-graphite">Got</span>
+                <span className="text-graphite capitalize">{t("finalAnswer")}</span>
                 <strong
                   className={data.run.outcome === "fail" ? "text-warning" : ""}
                 >
@@ -98,7 +100,7 @@ export default function RunDetailPage() {
               {data.run.parent_run_id && (
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                   <Link
-                    to={`/runs/${data.run.parent_run_id}`}
+                    to={`/conversations/${data.run.parent_run_id}`}
                     className="font-mono text-advisory"
                   >
                     Replay of {data.run.parent_run_id}
@@ -109,6 +111,11 @@ export default function RunDetailPage() {
                     {data.run.tokens_saved.toLocaleString()} tokens saved
                   </StatChip>
                 </div>
+              )}
+              {data.run.incident_id && (
+                <Link to={`/incidents/${data.run.incident_id}`} className="mt-3 inline-block text-sm text-advisory">
+                  Part of incident: Refund questions answered wrong — search returned an archived policy
+                </Link>
               )}
             </div>
             <div className="flex flex-wrap justify-end gap-2">
@@ -135,7 +142,7 @@ export default function RunDetailPage() {
       </header>
       <div className="mx-auto grid max-w-[1600px] grid-cols-[220px_minmax(0,1fr)_400px] grid-rows-[minmax(420px,calc(100vh-300px))_96px] max-[1200px]:grid-cols-[minmax(0,1fr)_400px] max-[900px]:grid-cols-1 max-[900px]:grid-rows-[430px_auto_96px]">
         <aside className="border-r border-rule bg-panel p-5 max-[1200px]:hidden">
-          <h2 className="heading mb-5 text-lg">Run facts</h2>
+          <h2 className="heading mb-5 text-lg capitalize">{t("run")} facts</h2>
           <dl className="space-y-4">
             {[
               ["Steps", data.run.n_steps],
@@ -150,11 +157,11 @@ export default function RunDetailPage() {
               </div>
             ))}
             <div>
-              <dt className="text-xs text-graphite">Run ID</dt>
+              <dt className="text-xs text-graphite capitalize">{t("run")} ID</dt>
               <dd className="flex items-center gap-2 font-mono text-xs">
                 {data.run.run_id}
                 <button
-                  aria-label="Copy run ID"
+                  aria-label={`Copy ${t("run")} ID`}
                   onClick={() => navigator.clipboard.writeText(data.run.run_id)}
                 >
                   <Copy className="h-3.5 w-3.5" />

@@ -9,7 +9,7 @@ from blackbox.agent.agent import run_agent
 from blackbox.corpus.retriever import Retriever
 from blackbox.llm.fake import FakeLLM
 from blackbox.repair.repair import _repair
-from blackbox.repair.strategies import WIDEN_SEARCH
+from blackbox.repair.strategies import CURRENT_ARTICLES_ONLY
 from blackbox.replay.engine import _replay
 from blackbox.sdk.cassette import Cassette
 from blackbox.sdk.context import ExecutionContext
@@ -19,13 +19,16 @@ from blackbox.store.repo import get_steps, upsert_task
 
 
 class WideningRetriever(Retriever):
-    def search(self, query: str, k: int = 3) -> list[dict[str, Any]]:
+    def search(
+        self, query: str, k: int = 3, exclude_archived: bool = False
+    ) -> list[dict[str, Any]]:
         passages = [
             {
                 "pid": f"bad-{index}",
                 "title": f"Bad {index}",
                 "text": "Bad evidence",
                 "score": 1.0 - index / 10,
+                "status": "archived",
             }
             for index in range(5)
         ]
@@ -35,8 +38,11 @@ class WideningRetriever(Retriever):
                 "title": "Correct",
                 "text": "Correct evidence",
                 "score": 0.5,
+                "status": "current",
             }
         )
+        if exclude_archived:
+            passages = [passage for passage in passages if passage["status"] == "current"]
         return passages[:k]
 
     def search_titles(self, entity: str, k: int = 3) -> list[dict[str, Any]]:
@@ -51,6 +57,7 @@ def test_repair_widens_retrieval_and_stops_after_first_success(tmp_path: Path) -
     SQLModel.metadata.create_all(engine)
     task = Task(
         task_id="repair-widen",
+        workspace="nimbu",
         question="What is the answer?",
         gold_answer="correct",
         qtype="bridge",
@@ -151,9 +158,9 @@ def test_repair_widens_retrieval_and_stops_after_first_success(tmp_path: Path) -
     assert source_run.outcome == "fail"
     assert result.repaired
     assert result.winning_step_key == retrieve_step.step_key
-    assert result.attempts[0].strategy == WIDEN_SEARCH
+    assert result.attempts[0].strategy == CURRENT_ARTICLES_ONLY
     assert result.attempts[0].outcome == "pass"
-    assert len(result.attempts) == 2
+    assert len(result.attempts) == 3
     assert {attempt.step_key for attempt in result.attempts} == {
         retrieve_step.step_key
     }

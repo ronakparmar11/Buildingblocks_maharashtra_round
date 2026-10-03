@@ -16,6 +16,8 @@ def _utc_now() -> datetime:
 
 class Task(SQLModel, table=True):
     task_id: str = Field(primary_key=True)
+    workspace: str = Field(default="hotpot", index=True)
+    category: str | None = None
     question: str
     gold_answer: str
     qtype: str
@@ -28,6 +30,8 @@ class Task(SQLModel, table=True):
 class Run(SQLModel, table=True):
     run_id: str = Field(default_factory=_uuid4_hex, primary_key=True)
     task_id: str = Field(foreign_key="task.task_id")
+    workspace: str = Field(default="hotpot", index=True)
+    incident_id: str | None = Field(default=None, index=True)
     origin: str
     parent_run_id: str | None = None
     final_answer: str | None = None
@@ -105,3 +109,75 @@ class Cassette(SQLModel, table=True):
     tokens_in: int
     tokens_out: int
     created_at: datetime = Field(default_factory=_utc_now)
+
+
+class Incident(SQLModel, table=True):
+    incident_id: str = Field(default_factory=_uuid4_hex, primary_key=True)
+    workspace: str = Field(index=True)
+    group_key: str = Field(index=True)
+    title: str
+    category: str
+    cause_step_name: str
+    cause_feature: str
+    severity: str
+    status: str
+    owner: str
+    est_cost_inr: int
+    n_runs: int
+    representative_run_id: str
+    first_seen: datetime = Field(default_factory=_utc_now)
+    last_seen: datetime = Field(default_factory=_utc_now)
+    resolved_at: datetime | None = None
+    verified_strategy: dict[str, Any] | None = Field(
+        default=None, sa_column=Column(JSON, nullable=True)
+    )
+    verify_result: dict[str, Any] | None = Field(
+        default=None, sa_column=Column(JSON, nullable=True)
+    )
+
+
+class IncidentEvent(SQLModel, table=True):
+    __tablename__ = "incident_event"
+
+    event_id: str = Field(default_factory=_uuid4_hex, primary_key=True)
+    incident_id: str = Field(foreign_key="incident.incident_id", index=True)
+    kind: str
+    text: str
+    created_at: datetime = Field(default_factory=_utc_now)
+    meta: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+
+
+class Recipient(SQLModel, table=True):
+    recipient_id: str = Field(default_factory=_uuid4_hex, primary_key=True)
+    name: str
+    email: str
+    workspace: str = Field(index=True)
+    active: bool = True
+    rules: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+
+
+class NotificationRule(SQLModel, table=True):
+    __tablename__ = "notification_rule"
+
+    rule_id: str = Field(default_factory=_uuid4_hex, primary_key=True)
+    workspace: str = Field(index=True)
+    kind: str
+    enabled: bool = True
+    params: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+
+
+class NotificationLog(SQLModel, table=True):
+    __tablename__ = "notification_log"
+
+    notification_id: str = Field(default_factory=_uuid4_hex, primary_key=True)
+    workspace: str = Field(index=True)
+    rule_kind: str
+    incident_id: str | None = Field(default=None, index=True)
+    recipients: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    subject: str
+    html: str
+    text: str
+    status: str
+    error: str | None = None
+    created_at: datetime = Field(default_factory=_utc_now)
+    sent_at: datetime | None = None

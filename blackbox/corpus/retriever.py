@@ -1,7 +1,6 @@
 import json
 from collections.abc import Callable
 from functools import lru_cache
-from pathlib import Path
 from typing import TypedDict
 
 import numpy as np
@@ -9,6 +8,7 @@ from rapidfuzz import fuzz, process
 
 from blackbox.config import Settings, get_settings
 from blackbox.corpus.embed import embed_texts
+from blackbox.corpus.paths import workspace_data_dir
 
 
 class SearchResult(TypedDict):
@@ -25,16 +25,18 @@ class Retriever:
         passages: list[dict[str, str]] | None = None,
         embeddings: np.ndarray | None = None,
         embedder: Callable[[list[str]], np.ndarray] = embed_texts,
+        workspace: str = "hotpot",
     ) -> None:
         self._settings = settings or get_settings()
         self._passages = passages
         self._embeddings = embeddings
         self._embedder = embedder
+        self._workspace = workspace
         self._by_pid: dict[str, dict[str, str]] | None = None
 
     def _load(self) -> None:
         if self._passages is None:
-            data_dir = Path(self._settings.DATA_DIR)
+            data_dir = workspace_data_dir(self._settings, self._workspace)
             with (data_dir / "passages.jsonl").open(encoding="utf-8") as file:
                 self._passages = [json.loads(line) for line in file if line.strip()]
             self._embeddings = np.load(data_dir / "embeddings.npy")
@@ -51,7 +53,15 @@ class Retriever:
         if self._by_pid is None:
             self._load()
 
-    def search(self, query: str, k: int = 3) -> list[SearchResult]:
+    @classmethod
+    def for_workspace(
+        cls, workspace: str, settings: Settings | None = None
+    ) -> "Retriever":
+        return cls(settings=settings, workspace=workspace)
+
+    def search(
+        self, query: str, k: int = 3, exclude_archived: bool = False
+    ) -> list[SearchResult]:
         self._ensure_loaded()
         assert self._passages is not None
         assert self._embeddings is not None
@@ -60,7 +70,16 @@ class Retriever:
         if query_norm:
             query_embedding = query_embedding / query_norm
         scores = self._embeddings @ query_embedding
-        top_indices = np.argsort(scores)[::-1][: max(0, min(k, len(scores)))]
+        ranked_indices = np.argsort(scores)[::-1]
+        if exclude_archived:
+            ranked_indices = np.asarray(
+                [
+                    index
+                    for index in ranked_indices
+                    if self._passages[index].get("status") != "archived"
+                ]
+            )
+        top_indices = ranked_indices[: max(0, min(k, len(ranked_indices)))]
         return [
             SearchResult(**self._passages[index], score=float(scores[index]))
             for index in top_indices
@@ -86,6 +105,6 @@ class Retriever:
         ]
 
 
-@lru_cache(maxsize=1)
-def get_retriever() -> Retriever:
-    return Retriever()
+@lru_cache(maxsize=4)
+def get_retriever(workspace: str = "hotpot") -> Retriever:
+    return Retriever.for_workspace(workspace)

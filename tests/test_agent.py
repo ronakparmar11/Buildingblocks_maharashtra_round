@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
-from blackbox.agent.agent import run_agent
+from blackbox.agent.agent import NIMBU_PREAMBLE, run_agent
 from blackbox.agent.scoring import exact_match, f1, is_pass, normalize_answer
 from blackbox.corpus.retriever import Retriever
 from blackbox.llm.fake import FakeLLM
@@ -71,6 +71,47 @@ def _run(
     )
     run_agent(task, ctx)
     return fake, retriever
+
+
+def test_nimbu_preamble_is_added_to_every_llm_prompt_only_for_nimbu(
+    session: Session,
+) -> None:
+    script = {
+        "[PLAN]": {
+            "type": "bridge",
+            "subquestions": [{"id": "q1", "text": "Policy?", "deps": []}],
+        },
+        "Policy?": {
+            "answer": "7 days",
+            "evidence_pid": "p1",
+            "evidence_sentence": "Return within 7 days.",
+        },
+        "[CHECK]": {"supported": True, "reason": "direct"},
+        "[SYNTHESIZE]": {"answer": "7 days"},
+    }
+    nimbu = _task("nimbu-prompt", "Return window?", "7 days", "bridge")
+    nimbu.workspace = "nimbu"
+    hotpot = _task("hotpot-prompt", "Return window?", "7 days", "bridge")
+
+    _run(session, nimbu, script, "nimbu-prompt-run")
+    _run(session, hotpot, script, "hotpot-prompt-run")
+
+    nimbu_prompts = [
+        step.input["prompt"]
+        for step in get_steps(session, "nimbu-prompt-run")
+        if step.type == "llm"
+    ]
+    hotpot_prompts = [
+        step.input["prompt"]
+        for step in get_steps(session, "hotpot-prompt-run")
+        if step.type == "llm"
+    ]
+    assert nimbu_prompts and all(
+        prompt.startswith(NIMBU_PREAMBLE) for prompt in nimbu_prompts
+    )
+    assert hotpot_prompts and all(
+        NIMBU_PREAMBLE not in prompt for prompt in hotpot_prompts
+    )
 
 
 def test_comparison_has_independent_branches_and_second_run_hits_cassette(

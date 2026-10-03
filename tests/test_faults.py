@@ -9,7 +9,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from blackbox.agent.agent import run_agent
 from blackbox.corpus.retriever import Retriever
-from blackbox.faults.inject import _execute_fault
+from blackbox.faults.inject import _distractors, _execute_fault
 from blackbox.faults.library import (
     BAD_QUERY,
     DISTRACTOR_RETRIEVAL,
@@ -232,3 +232,13 @@ def test_comparison_specific_fault_branches_are_valid() -> None:
 
     assert len(changed_plan["subquestions"]) == 1
     assert changed_answer == {"answer": "no"}
+
+
+def test_nimbu_distractor_fault_uses_task_article_ids() -> None:
+    task = _task().model_copy(
+        update={"workspace": "nimbu", "distractor_pids": ["d2"]}
+    )
+
+    assert [passage["pid"] for passage in _distractors(task, FaultRetriever())] == [
+        "d2"
+    ]

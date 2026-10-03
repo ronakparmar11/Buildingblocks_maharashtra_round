@@ -1,8 +1,10 @@
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -121,6 +123,60 @@ def test_cors_allows_frontend_origin(mock_client: TestClient) -> None:
     assert response.headers["access-control-allow-origin"] == (
         "http://localhost:5173"
     )
+
+
+def test_failed_job_exposes_demo_recording_message(mock_client: TestClient) -> None:
+    from blackbox.api.replay import submit_job, wait_for_job
+    from blackbox.sdk.cassette import CassetteMissError
+
+    message = (
+        "This step isn't in the demo recording. Pick one of the prepared "
+        "demo questions in Live lab."
+    )
+
+    def miss() -> dict[str, Any]:
+        raise CassetteMissError(message)
+
+    job_id = submit_job(miss)
+    with pytest.raises(CassetteMissError, match=message):
+        wait_for_job(job_id)
+    response = mock_client.get(f"/api/jobs/{job_id}")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "failed"
+    assert response.json()["result"] == {"error": message}
+
+
+def test_diagnosis_feature_error_returns_422(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from contextlib import contextmanager
+
+    from blackbox.api import runs as runs_api
+    from blackbox.model import predict
+
+    class StubSession:
+        def get(self, _model: object, _run_id: str) -> object:
+            return object()
+
+    @contextmanager
+    def session() -> Iterator[StubSession]:
+        yield StubSession()
+
+    monkeypatch.setattr(runs_api, "mock_mode", lambda: False)
+    monkeypatch.setattr(runs_api, "get_session", session)
+    monkeypatch.setattr(runs_api, "get_predictions", lambda *_args: [])
+    monkeypatch.setattr(
+        predict,
+        "diagnose",
+        lambda _run_id: (_ for _ in ()).throw(KeyError("missing features")),
+    )
+
+    with pytest.raises(HTTPException) as raised:
+        runs_api.get_diagnosis("incomplete-run")
+
+    assert raised.value.status_code == 422
+    assert "missing features" in str(raised.value.detail)
 
 
 def test_real_mode_uses_temp_database_seeded_with_fake_llm(

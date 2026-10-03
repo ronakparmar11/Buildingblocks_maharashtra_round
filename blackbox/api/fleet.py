@@ -12,18 +12,35 @@ router = APIRouter()
 
 
 @router.get("/fleet", response_model=FleetResponse)
-def get_fleet(split: str = "test") -> FleetResponse:
+def get_fleet(split: str = "test", workspace: str = "hotpot") -> FleetResponse:
     if mock_mode():
+        if workspace != "hotpot":
+            return FleetResponse(
+                by_step_name=[],
+                by_reason=[],
+                by_fault_type=[],
+                total_failed=0,
+            )
         return FleetResponse.model_validate(load_fixture("mock_api.json")["fleet"])
 
     with get_session() as session:
         tasks = {
             task.task_id
-            for task in session.exec(select(Task).where(Task.split == split)).all()
+            for task in session.exec(
+                select(Task).where(
+                    Task.workspace == workspace,
+                    Task.split == split,
+                )
+            ).all()
         }
         failed = [
             run
-            for run in session.exec(select(Run).where(Run.outcome == "fail")).all()
+            for run in session.exec(
+                select(Run).where(
+                    Run.workspace == workspace,
+                    Run.outcome == "fail",
+                )
+            ).all()
             if run.task_id in tasks
         ]
         run_ids = {run.run_id for run in failed}

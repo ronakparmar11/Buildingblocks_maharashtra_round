@@ -106,7 +106,11 @@ def _repair(
                     step.step_key,
                     error,
                 )
-        candidates = candidates_for_step(step, rewritten_query=rewritten_query)
+        candidates = candidates_for_step(
+            step,
+            workspace=source_run.workspace,
+            rewritten_query=rewritten_query,
+        )
         if not candidates:
             continue
         workers = max(1, min(max_workers, len(candidates)))

@@ -17,6 +17,8 @@ from blackbox.agent.agent import run_agent
 from blackbox.config import get_settings
 from blackbox.corpus.embed import build_embeddings
 from blackbox.corpus.hotpot import build_hotpot_corpus
+from blackbox.corpus.nimbu import build_nimbu_corpus
+from blackbox.corpus.paths import workspace_data_dir
 from blackbox.corpus.retriever import get_retriever
 from blackbox.datagen.pipeline import (
     DataGenerationPipeline,
@@ -27,6 +29,8 @@ from blackbox.datagen.pipeline import (
 from blackbox.faults.inject import run_with_fault
 from blackbox.faults.targets import applicable_targets, latest_clean_run
 from blackbox.features.extract import build_dataset
+from blackbox.incidents.engine import explain_incident, verify_fix
+from blackbox.incidents.simulate import run_simulation
 from blackbox.labeling.bisect import label_fault_run
 from blackbox.labeling.counterfactual import label_organic_run
 from blackbox.llm.base import LLMClient
@@ -35,14 +39,29 @@ from blackbox.llm.groq import GroqLLM
 from blackbox.model.evaluate import evaluate
 from blackbox.model.predict import diagnose
 from blackbox.model.train import train_model
+from blackbox.notify.mailer import Mailer
+from blackbox.notify.rules import evaluate_rules
+from blackbox.notify.templates import render_email
+from blackbox.notify.worker import worker as notification_worker
 from blackbox.repair.repair import repair as repair_run
 from blackbox.replay.compare import compare as compare_runs
 from blackbox.replay.engine import replay as replay_run
 from blackbox.sdk.cassette import Cassette as CassetteStore
 from blackbox.sdk.context import ExecutionContext, Override
 from blackbox.sdk.tracer import Tracer
-from blackbox.store.db import get_session, init_db
-from blackbox.store.models import Cassette, Fault, Label, Prediction, Run, Step, Task
+from blackbox.store.db import get_session, init_db, migrate_database
+from blackbox.store.models import (
+    Cassette,
+    Fault,
+    Incident,
+    IncidentEvent,
+    Label,
+    NotificationLog,
+    Prediction,
+    Run,
+    Step,
+    Task,
+)
 from blackbox.store.repo import get_run, get_steps, get_task, list_tasks
 
 app = typer.Typer(help="Black Box agent flight recorder.")
@@ -53,6 +72,8 @@ faults_app = typer.Typer(help="List and inject realistic agent faults.")
 label_app = typer.Typer(help="Label failed runs with counterfactual replay.")
 generate_app = typer.Typer(help="Generate clean, fault, and labeled run data.")
 features_app = typer.Typer(help="Build leakage-free step feature datasets.")
+incidents_app = typer.Typer(help="Inspect and verify business incidents.")
+notify_app = typer.Typer(help="Send and inspect SMTP notifications.")
 app.add_typer(db_app, name="db")
 app.add_typer(corpus_app, name="corpus")
 app.add_typer(run_app, name="run")
@@ -60,6 +81,8 @@ app.add_typer(faults_app, name="faults")
 app.add_typer(label_app, name="label")
 app.add_typer(generate_app, name="generate")
 app.add_typer(features_app, name="features")
+app.add_typer(incidents_app, name="incidents")
+app.add_typer(notify_app, name="notify")
 
 TABLES = (Task, Run, Fault, Step, Label, Prediction, Cassette)
 
@@ -74,6 +97,18 @@ def db_init() -> None:
     typer.echo("Database initialized.")
 
 
+@db_app.command("migrate")
+def db_migrate() -> None:
+    changes, backup_path = migrate_database(Path(get_settings().DB_PATH))
+    if backup_path is not None:
+        typer.echo(f"Backup: {backup_path}")
+    if changes:
+        for change in changes:
+            typer.echo(f"Changed: {change}")
+    else:
+        typer.echo("Database is already at schema v2; no changes made.")
+
+
 @db_app.command("stats")
 def db_stats() -> None:
     init_db()
@@ -84,9 +119,14 @@ def db_stats() -> None:
 
 
 @corpus_app.command("build")
-def corpus_build(force: bool = typer.Option(False, "--force")) -> None:
+def corpus_build(
+    workspace: str = typer.Option("hotpot", "--workspace"),
+    force: bool = typer.Option(False, "--force"),
+) -> None:
+    if workspace not in {"hotpot", "nimbu"}:
+        raise typer.BadParameter("Workspace must be 'hotpot' or 'nimbu'")
     settings = get_settings()
-    data_dir = Path(settings.DATA_DIR)
+    data_dir = workspace_data_dir(settings, workspace)
     outputs = [
         data_dir / "passages.jsonl",
         data_dir / "embeddings.npy",
@@ -96,15 +136,167 @@ def corpus_build(force: bool = typer.Option(False, "--force")) -> None:
         typer.echo("Corpus files already exist; use --force to rebuild.")
         return
 
-    tasks, passages = build_hotpot_corpus(settings)
-    build_embeddings(settings)
+    if workspace == "nimbu":
+        tasks, passages = build_nimbu_corpus(settings)
+    else:
+        tasks, passages = build_hotpot_corpus(settings)
+    build_embeddings(settings, workspace=workspace)
     typer.echo(f"Built {len(tasks)} tasks and {len(passages)} passages.")
 
 
 @corpus_app.command("search")
-def corpus_search(query: str, k: int = typer.Option(3, min=1)) -> None:
-    for result in get_retriever().search(query, k=k):
+def corpus_search(
+    query: str,
+    workspace: str = typer.Option("hotpot", "--workspace"),
+    k: int = typer.Option(3, min=1),
+) -> None:
+    for result in get_retriever(workspace).search(query, k=k):
         typer.echo(f"{result['score']:.3f}\t{result['title']}\t{result['pid']}")
+
+
+def _inr(value: int) -> str:
+    digits = str(abs(value))
+    if len(digits) > 3:
+        head, tail = digits[:-3], digits[-3:]
+        groups = []
+        while head:
+            groups.append(head[-2:])
+            head = head[:-2]
+        digits = f"{','.join(reversed(groups))},{tail}"
+    return f"{'-' if value < 0 else ''}₹{digits}"
+
+
+@incidents_app.command("list")
+def incidents_list(workspace: str = typer.Option("nimbu", "--workspace")) -> None:
+    init_db()
+    with get_session() as session:
+        incidents = list(
+            session.exec(
+                select(Incident)
+                .where(Incident.workspace == workspace)
+                .order_by(Incident.last_seen.desc())
+            ).all()
+        )
+    table = Table("ID", "Status", "Severity", "Conversations", "Estimated cost", "Title")
+    for incident in incidents:
+        table.add_row(
+            incident.incident_id,
+            incident.status,
+            incident.severity,
+            str(incident.n_runs),
+            _inr(incident.est_cost_inr),
+            incident.title,
+        )
+    Console().print(table)
+
+
+@incidents_app.command("show")
+def incidents_show(incident_id: str) -> None:
+    init_db()
+    with get_session() as session:
+        incident = session.get(Incident, incident_id)
+        if incident is None:
+            raise typer.BadParameter(f"Unknown incident id: {incident_id}")
+        events = list(
+            session.exec(
+                select(IncidentEvent)
+                .where(IncidentEvent.incident_id == incident_id)
+                .order_by(IncidentEvent.created_at)
+            ).all()
+        )
+        typer.echo(incident.title)
+        typer.echo(
+            f"{incident.status} · {incident.severity} · {incident.n_runs} conversations · "
+            f"{_inr(incident.est_cost_inr)} estimated"
+        )
+        typer.echo(explain_incident(incident, session))
+        typer.echo("Timeline")
+        for event in events:
+            typer.echo(f"{event.created_at.isoformat()}  {event.text}")
+
+
+@incidents_app.command("verify")
+def incidents_verify(
+    incident_id: str, repair_run_id: str = typer.Option(..., "--repair-run")
+) -> None:
+    result = verify_fix(incident_id, repair_run_id)
+    typer.echo(
+        f"Fix verified on {result['n_passed']} of {result['n_total']} conversations; "
+        f"{result['tokens_saved']:,} tokens saved."
+    )
+
+
+@app.command("simulate")
+def simulate(
+    workspace: str = typer.Option("nimbu", "--workspace"),
+    n: int = typer.Option(30, "--n", min=1),
+    failure_rate: float = typer.Option(0.35, "--failure-rate", min=0.0, max=1.0),
+    seed: int = typer.Option(7, "--seed"),
+) -> None:
+    result = run_simulation(workspace, n, failure_rate, seed)
+    typer.echo(
+        f"Sent {result['sent']}; wrong {result['wrong']}; incidents opened "
+        f"{result['incidents_opened']}; emails queued {result['emails_queued']}."
+    )
+
+
+@notify_app.command("test")
+def notify_test(to: str = typer.Option(..., "--to")) -> None:
+    rendered = render_email("test", {"workspace_name": "Nimbu Living support"})
+    row = notification_worker.enqueue("nimbu", "test", [to], rendered)
+    notification_worker.wait()
+    with get_session() as session:
+        stored = session.get(NotificationLog, row.notification_id)
+        assert stored is not None
+        typer.echo(f"Notification {stored.status}: {stored.notification_id}")
+
+
+@notify_app.command("status")
+def notify_status() -> None:
+    settings = get_settings()
+    connected, _ = Mailer(settings).check_connection()
+    if connected:
+        typer.echo(f"Connected to {settings.SMTP_HOST}:{settings.SMTP_PORT} (Mailpit)")
+    else:
+        typer.echo(
+            f"Can't reach the mail server at {settings.SMTP_HOST}:{settings.SMTP_PORT}. "
+            "Start Mailpit or update SMTP settings in .env."
+        )
+
+
+@notify_app.command("log")
+def notify_log(limit: int = typer.Option(20, "--limit", min=1)) -> None:
+    with get_session() as session:
+        rows = list(
+            session.exec(
+                select(NotificationLog)
+                .order_by(NotificationLog.created_at.desc())
+                .limit(limit)
+            ).all()
+        )
+    table = Table("When", "Kind", "Status", "Subject", "Error")
+    for row in rows:
+        table.add_row(
+            row.created_at.isoformat(),
+            row.rule_kind,
+            row.status,
+            row.subject,
+            row.error or "",
+        )
+    Console().print(table)
+
+
+@notify_app.command("digest")
+def notify_digest(workspace: str = typer.Option("nimbu", "--workspace")) -> None:
+    row = evaluate_rules("daily_digest", workspace)
+    if row is None:
+        typer.echo("Digest not sent.")
+        return
+    notification_worker.wait()
+    with get_session() as session:
+        stored = session.get(NotificationLog, row.notification_id)
+        assert stored is not None
+        typer.echo(f"Digest {stored.status}: {stored.notification_id}")
 
 
 def _llm_client() -> LLMClient:
@@ -124,7 +316,7 @@ def _execute_clean(session: Session, task: Task, llm: LLMClient) -> Run:
         origin="clean",
         demo_mode=bool(get_settings().BLACKBOX_DEMO_MODE),
         tracer=tracer,
-        retriever=get_retriever(),
+        retriever=get_retriever(task.workspace),
     )
     return run_agent(task, context)
 
@@ -412,14 +604,14 @@ def label_organic(limit: int = typer.Option(60, min=1)) -> None:
     _print_label_summary(labels, steps_by_run)
 
 
-def _run_generation(stage: Stage, limit_tasks: int | None) -> None:
+def _run_generation(stage: Stage, limit_tasks: int | None, workspace: str) -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(message)s",
         handlers=[RichHandler(show_time=False, show_path=False)],
     )
     try:
-        DataGenerationPipeline().run(stage, limit_tasks)
+        DataGenerationPipeline(workspace=workspace).run(stage, limit_tasks)
     except KeyboardInterrupt:
         raise typer.Exit(130) from None
 
@@ -427,36 +619,41 @@ def _run_generation(stage: Stage, limit_tasks: int | None) -> None:
 @generate_app.command("all")
 def generate_all(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("all", limit_tasks)
+    _run_generation("all", limit_tasks, workspace)
 
 
 @generate_app.command("clean")
 def generate_clean(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("clean", limit_tasks)
+    _run_generation("clean", limit_tasks, workspace)
 
 
 @generate_app.command("faults")
 def generate_faults(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("faults", limit_tasks)
+    _run_generation("faults", limit_tasks, workspace)
 
 
 @generate_app.command("label")
 def generate_label(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("label", limit_tasks)
+    _run_generation("label", limit_tasks, workspace)
 
 
 @generate_app.command("organic")
 def generate_organic(
     limit_tasks: int | None = typer.Option(None, "--limit-tasks", min=1),
+    workspace: str = typer.Option("hotpot", "--workspace"),
 ) -> None:
-    _run_generation("organic", limit_tasks)
+    _run_generation("organic", limit_tasks, workspace)
 
 
 @generate_app.command("status")
@@ -616,8 +813,80 @@ def repair_command(
 
 
 @app.command()
-def prewarm() -> None:
-    _not_implemented()
+def prewarm(
+    tasks: Annotated[str, typer.Option("--tasks")],
+    faults: Annotated[str, typer.Option("--faults")],
+) -> None:
+    task_ids = [item.strip() for item in tasks.split(",") if item.strip()]
+    fault_specs = [item.strip() for item in faults.split(",") if item.strip()]
+    if not task_ids:
+        raise typer.BadParameter("--tasks must contain at least one task id")
+    if len(task_ids) != len(fault_specs):
+        raise typer.BadParameter(
+            "--tasks and --faults must contain the same number of items"
+        )
+
+    parsed_faults: list[tuple[str, str]] = []
+    for spec in fault_specs:
+        fault_type, separator, step_key = spec.partition("@")
+        if not separator or not fault_type or not step_key:
+            raise typer.BadParameter(
+                f"Invalid fault '{spec}'; expected TYPE@STEP_KEY"
+            )
+        parsed_faults.append((fault_type, step_key))
+
+    init_db()
+    llm = _llm_client()
+    console = Console()
+    for task_id, (fault_type, step_key) in zip(
+        task_ids, parsed_faults, strict=True
+    ):
+        with get_session() as session:
+            task = get_task(session, task_id)
+            if task is None:
+                raise typer.BadParameter(f"Unknown task id: {task_id}")
+            clean_run = _execute_clean(session, task, llm)
+        if clean_run.outcome != "pass":
+            raise typer.BadParameter(
+                f"Clean run for {task_id} did not pass; choose another demo task"
+            )
+
+        fault_run = run_with_fault(
+            task,
+            fault_type,
+            step_key,
+            get_settings().SEED,
+        )
+        if fault_run.outcome != "fail":
+            raise typer.BadParameter(
+                f"{fault_type}@{step_key} did not fail for {task_id}; "
+                "choose another demo scenario"
+            )
+
+        diagnosis = diagnose(fault_run.run_id)
+        repair = repair_run(fault_run.run_id, top_k=3)
+        if not repair.attempts:
+            raise typer.BadParameter(
+                f"No repair candidates were available for {task_id}"
+            )
+        with get_session() as session:
+            source = get_run(session, fault_run.run_id)
+            if source is None:
+                raise typer.BadParameter(f"Fault run disappeared: {fault_run.run_id}")
+            for attempt in repair.attempts:
+                repaired = get_run(session, attempt.run_id)
+                if repaired is None:
+                    raise typer.BadParameter(
+                        f"Repair run disappeared: {attempt.run_id}"
+                    )
+                compare_runs(source, repaired)
+
+        top_step = diagnosis["ranking"][0]["step_key"]
+        status = "repaired" if repair.repaired else "not repaired"
+        console.print(
+            f"[bold]{task_id}[/bold]  fault={fault_type}@{step_key}  "
+            f"top-1={top_step}  attempts={len(repair.attempts)}  {status}"
+        )
 
 
 if __name__ == "__main__":
