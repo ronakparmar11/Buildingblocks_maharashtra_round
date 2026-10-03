@@ -47,12 +47,14 @@ function Shell() {
   return (
     <>
       <header className="sticky top-0 z-40 h-14 border-b border-rule bg-panel">
-        <div className="mx-auto flex h-full max-w-[1440px] items-center gap-8 px-6">
+        <div className="mx-auto flex h-full max-w-[1440px] items-center gap-3 px-3 sm:gap-8 sm:px-6">
           <NavLink to="/" className="flex items-center gap-2">
             <span className="h-3.5 w-3.5 bg-orange" />
-            <span className="heading text-[18px]">Black Box</span>
+            <span className="heading hidden text-[18px] sm:inline">
+              Black Box
+            </span>
           </NavLink>
-          <nav className="flex h-full items-center gap-6">
+          <nav className="flex h-full items-center gap-3 sm:gap-6">
             {links.map(([to, label]) => (
               <NavLink
                 key={to}
@@ -66,7 +68,7 @@ function Shell() {
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <span className="rounded-chip bg-rule-soft px-2.5 py-1 text-xs">
               {import.meta.env.VITE_USE_MOCKS === "true"
                 ? "Demo data"
@@ -74,7 +76,7 @@ function Shell() {
                   ? "Demo mode"
                   : "Live"}
             </span>
-            <span className="font-mono text-xs text-graphite">
+            <span className="hidden font-mono text-xs text-graphite md:inline">
               {health.data?.model_version ?? "v3"}
             </span>
             <button

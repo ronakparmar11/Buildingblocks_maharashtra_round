@@ -89,9 +89,9 @@ export default function ComparePage() {
         ← Back to run
       </Link>
       <h1 className="heading mt-3 text-xl">Compare runs</h1>
-      <div className="mt-5 grid grid-cols-[1fr_56px_1fr] items-center">
+      <div className="mt-5 grid grid-cols-[1fr_56px_1fr] items-center max-[640px]:grid-cols-1">
         <div className="rounded-panel border border-rule bg-panel p-5">
-          <p className="font-mono text-xs text-graphite">
+          <p className="break-all font-mono text-xs text-graphite">
             Original {data.a.run_id}
           </p>
           <div className="mt-3 flex items-center gap-3">
@@ -99,9 +99,9 @@ export default function ComparePage() {
             <span>{data.a.n_steps} steps</span>
           </div>
         </div>
-        <div className="h-px bg-ink" />
+        <div className="h-px bg-ink max-[640px]:my-2" />
         <div className="rounded-panel border border-rule bg-panel p-5">
-          <p className="font-mono text-xs text-graphite">
+          <p className="break-all font-mono text-xs text-graphite">
             Replay {data.b.run_id}
           </p>
           <div className="mt-3 flex items-center gap-3">
@@ -131,7 +131,7 @@ export default function ComparePage() {
           onChange={setMode}
         />
       </div>
-      <div className="mt-3 overflow-hidden rounded-panel border border-rule bg-panel">
+      <div className="mt-3 overflow-x-auto rounded-panel border border-rule bg-panel">
         <table className="w-full table-fixed text-left">
           <thead>
             <tr className="border-b border-rule bg-paper text-xs text-graphite">

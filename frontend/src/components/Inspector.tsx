@@ -370,7 +370,9 @@ export default function Inspector({
                   <a href={`/runs/${replay.data.run.run_id}`}>
                     <Button variant="ink">Open replay</Button>
                   </a>
-                  <a href={replay.data.compare_url}>
+                  <a
+                    href={`/compare?a=${runId}&b=${replay.data.run.run_id}`}
+                  >
                     <Button>Compare with original</Button>
                   </a>
                 </div>
