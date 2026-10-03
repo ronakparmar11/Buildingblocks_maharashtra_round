@@ -1,19 +1,27 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color: #e8e8ea;
-  background: #0b0b0c;
-  font-family: Inter, sans-serif;
+  color: #14202b;
+  background: #eef1f2;
+  font-family: Archivo, "Segoe UI", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+button, input, select, textarea { font: inherit; }
+.heading { font-weight: 600; font-variation-settings: "wdth" 85; }
+:focus-visible { outline: 2px solid #0b6e8a; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
