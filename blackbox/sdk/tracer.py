@@ -175,46 +175,81 @@ class Tracer:
         reused = False
         overridden = override is not None
         latency_ms = 0
+        started_at = time.perf_counter()
 
-        if override is not None and override.kind == "set_output":
-            if override.output is None:
-                raise ValueError(f"set_output override for {key} requires output")
-            output = override.output
-        elif override is None and self._can_reuse(source, input_hash, ctx):
-            assert source is not None
-            output = source.output
-            usage["model"] = source.model or self.model
-            reused = True
-            meta = dict(source.meta)
-            stats.n_reused += 1
-            stats.tokens_saved += source.tokens_in + source.tokens_out
-        else:
-            params = dict(override.params) if override is not None else {}
-            output_fault: FaultFn | None = None
-            fault_params: dict[str, Any] = {}
-            if override is not None and override.kind == "fault":
-                if override.fault_type is None or override.fault_type not in _FAULTS:
-                    raise ValueError(f"Unknown fault type: {override.fault_type}")
-                hooks = _FAULTS[override.fault_type]
-                fault_params = override.fault_params
-                if hooks.input_fn is not None:
-                    meta["pre_override_input_hash"] = input_hash
-                    effective_input = hooks.input_fn(input, fault_params)
-                    input_hash = sha256_json(effective_input)
-                output_fault = hooks.output_fn
+        try:
+            if override is not None and override.kind == "set_output":
+                if override.output is None:
+                    raise ValueError(f"set_output override for {key} requires output")
+                output = override.output
+            elif override is None and self._can_reuse(source, input_hash, ctx):
+                assert source is not None
+                output = source.output
+                usage["model"] = source.model or self.model
+                reused = True
+                meta = dict(source.meta)
+                stats.n_reused += 1
+                stats.tokens_saved += source.tokens_in + source.tokens_out
+            else:
+                params = dict(override.params) if override is not None else {}
+                output_fault: FaultFn | None = None
+                fault_params: dict[str, Any] = {}
+                if override is not None and override.kind == "fault":
+                    if override.fault_type is None or override.fault_type not in _FAULTS:
+                        raise ValueError(f"Unknown fault type: {override.fault_type}")
+                    hooks = _FAULTS[override.fault_type]
+                    fault_params = override.fault_params
+                    if hooks.input_fn is not None:
+                        meta["pre_override_input_hash"] = input_hash
+                        effective_input = hooks.input_fn(input, fault_params)
+                        input_hash = sha256_json(effective_input)
+                    output_fault = hooks.output_fn
 
-            started_at = time.perf_counter()
-            output, usage, cache_hit = self.cassette.get_or_call(
-                kind="llm" if type == "llm" else "tool",
-                model=self.model,
-                payload={"input": effective_input, "params": params},
-                temperature=float(params.get("temperature", 0.0)),
-                sample_idx=int(params.get("sample_idx", 0)),
-                call_fn=lambda: fn(effective_input, params),
-            )
+                output, usage, cache_hit = self.cassette.get_or_call(
+                    kind="llm" if type == "llm" else "tool",
+                    model=self.model,
+                    payload={"input": effective_input, "params": params},
+                    temperature=float(params.get("temperature", 0.0)),
+                    sample_idx=int(params.get("sample_idx", 0)),
+                    call_fn=lambda: fn(effective_input, params),
+                )
+                latency_ms = round((time.perf_counter() - started_at) * 1000)
+                if output_fault is not None:
+                    output = output_fault(output, fault_params)
+            output_text = output_text_fn(output)
+        except Exception as error:
             latency_ms = round((time.perf_counter() - started_at) * 1000)
-            if output_fault is not None:
-                output = output_fault(output, fault_params)
+            add_step(
+                self.session,
+                Step(
+                    run_id=ctx.run_id,
+                    step_key=key,
+                    idx=idx,
+                    name=name,
+                    type=type,
+                    node_id=node_id,
+                    attempt=attempt,
+                    deps=deps,
+                    input=effective_input,
+                    input_hash=input_hash,
+                    output={},
+                    output_hash=sha256_json({}),
+                    output_text="",
+                    latency_ms=latency_ms,
+                    tokens_in=0,
+                    tokens_out=0,
+                    model=self.model,
+                    cache_hit=False,
+                    reused=False,
+                    overridden=overridden,
+                    state_snapshot=ctx.state_snapshot(),
+                    error=f"{error.__class__.__name__}: {error}",
+                    meta=meta,
+                ),
+            )
+            stats.n_steps += 1
+            stats.n_executed += 1
+            raise
 
         tokens_in = 0 if reused else usage.get("tokens_in", 0)
         tokens_out = 0 if reused else usage.get("tokens_out", 0)
@@ -234,7 +269,7 @@ class Tracer:
                 input_hash=input_hash,
                 output=output,
                 output_hash=sha256_json(output),
-                output_text=output_text_fn(output),
+                output_text=output_text,
                 latency_ms=latency_ms,
                 tokens_in=tokens_in,
                 tokens_out=tokens_out,

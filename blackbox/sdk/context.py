@@ -1,9 +1,13 @@
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from blackbox.store.models import Task
+
+if TYPE_CHECKING:
+    from blackbox.corpus.retriever import Retriever
+    from blackbox.sdk.tracer import Tracer
 
 
 def _empty_snapshot() -> dict[str, Any]:
@@ -29,6 +33,8 @@ class ExecutionContext:
     freeze_before_idx: int | None = None
     demo_mode: bool = False
     state_snapshot: Callable[[], dict[str, Any]] = _empty_snapshot
+    tracer: "Tracer | None" = None
+    retriever: "Retriever | None" = None
 
 
 current_context: ContextVar[ExecutionContext | None] = ContextVar(
