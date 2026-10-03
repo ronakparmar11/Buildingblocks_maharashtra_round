@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCompare } from "../api/hooks";
+import { t } from "../lib/vocab";
 import ExecutionRoute from "../components/ExecutionRoute";
 import {
   EmptyState,
@@ -29,9 +30,9 @@ export default function ComparePage() {
   if (!a || !b)
     return (
       <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-        <h1 className="heading text-xl">Compare runs</h1>
+        <h1 className="heading text-xl">Compare {t("runs")}</h1>
         <p className="mt-4 text-graphite">
-          Pick two runs to compare. Open a replay and choose Compare with
+          Pick two {t("runs")} to compare. Open a replay and choose Compare with
           original.
         </p>
       </div>
@@ -52,7 +53,7 @@ export default function ComparePage() {
     return <ErrorState onRetry={() => comparison.refetch()} />;
   const data = comparison.data;
   if (!data.rows.length)
-    return <EmptyState title="These runs have no steps to compare." />;
+    return <EmptyState title={`These ${t("runs")} have no steps to compare.`} />;
   const changed = data.rows.filter((row) => row.status !== "same").length;
   const same = data.rows.length - changed;
   const shown =
@@ -85,10 +86,10 @@ export default function ComparePage() {
   };
   return (
     <div className="mx-auto max-w-[1600px] px-6 py-8">
-      <Link to={`/runs/${b || a}`} className="text-sm text-advisory">
-        ← Back to run
+      <Link to={`/conversations/${b || a}`} className="text-sm text-advisory">
+        ← Back to {t("run")}
       </Link>
-      <h1 className="heading mt-3 text-xl">Compare runs</h1>
+      <h1 className="heading mt-3 text-xl">Compare {t("runs")}</h1>
       <div className="mt-5 grid grid-cols-[1fr_56px_1fr] items-center max-[640px]:grid-cols-1">
         <div className="rounded-panel border border-rule bg-panel p-5">
           <p className="break-all font-mono text-xs text-graphite">

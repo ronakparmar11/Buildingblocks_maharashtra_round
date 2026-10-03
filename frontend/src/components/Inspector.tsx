@@ -20,6 +20,7 @@ import {
   StatChip,
   Tabs,
 } from "./ui";
+import { t } from "../lib/vocab";
 
 const icons = {
   plan: Map,
@@ -171,7 +172,7 @@ export default function Inspector({
               >
                 The ranker combines trace features such as retrieval support,
                 consistency, and downstream effects. Scores are normalized
-                within this run.
+                within this {t("run")}.
               </Popover>
             </div>
           ) : (
@@ -302,7 +303,7 @@ export default function Inspector({
               </div>
             </section>
             <section>
-              <h3 className="heading mb-2">Final answer</h3>
+              <h3 className="heading mb-2 capitalize">{t("finalAnswer")}</h3>
               <p>{String(state.final ?? "Not set")}</p>
             </section>
           </div>
@@ -367,7 +368,7 @@ export default function Inspector({
                   </StatChip>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <a href={`/runs/${replay.data.run.run_id}`}>
+                  <a href={`/conversations/${replay.data.run.run_id}`}>
                     <Button variant="ink">Open replay</Button>
                   </a>
                   <a

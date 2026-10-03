@@ -1,3 +1,4 @@
+import { t } from "../lib/vocab";
 import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -122,12 +123,12 @@ export default function LiveLabPage() {
         <section className="flex gap-4 border-b border-rule bg-panel p-5">
           <StepNumber number={1} state={runId ? "done" : "active"} />
           <div className="min-w-0 flex-1">
-            <h2 className="heading text-lg">Pick a question</h2>
+            <h2 className="heading text-lg">Pick a {t("task")}</h2>
             <p className="mb-3 text-sm text-graphite">Prepared for demo</p>
             <Combobox
               value={taskId}
               onChange={setTaskId}
-              placeholder="Search test questions…"
+              placeholder={`Search ${t("task")}s…`}
               options={(tasks.data ?? []).map((task) => ({
                 value: task.task_id,
                 label: task.question,
@@ -331,10 +332,10 @@ export default function LiveLabPage() {
                   <Button variant="ink">Compare</Button>
                 </Link>
                 <Link
-                  to={`/runs/${runId}`}
+                  to={`/conversations/${runId}`}
                   className="self-center text-sm text-advisory"
                 >
-                  Open full run
+                  Open full {t("run")}
                 </Link>
               </div>
             )}
@@ -343,8 +344,8 @@ export default function LiveLabPage() {
       )}
       {runId && !startedFixes && (
         <div className="mt-4 text-right">
-          <Link to={`/runs/${runId}`} className="text-sm text-advisory">
-            Open full run
+          <Link to={`/conversations/${runId}`} className="text-sm text-advisory">
+            Open full {t("run")}
           </Link>
         </div>
       )}

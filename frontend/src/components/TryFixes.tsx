@@ -2,6 +2,7 @@ import { Check, LoaderCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useJob, useRepairJob } from "../api/hooks";
+import { t } from "../lib/vocab";
 import type { DiagnosisItem, RepairAttemptResponse } from "../api/types";
 import { Button, Drawer, StatChip } from "./ui";
 
@@ -139,7 +140,7 @@ export default function TryFixes({
           </p>
           <div className="mt-4 flex gap-2">
             <Button variant="ink" onClick={onClose}>
-              Open fixed run
+              Open fixed {t("run")}
             </Button>
             <Link to={`/compare?a=${runId}&b=${result.winning_run_id}`}>
               <Button>Compare with original</Button>

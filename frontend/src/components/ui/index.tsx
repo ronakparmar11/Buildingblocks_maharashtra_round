@@ -15,6 +15,7 @@ import {
   type ButtonHTMLAttributes,
   type ReactNode,
 } from "react";
+import { t } from "../../lib/vocab";
 
 export function Button({
   variant = "secondary",
@@ -70,10 +71,10 @@ export function RunTypeLabel({ origin }: { origin: string }) {
   const labels: Record<string, string> = {
     fault: "Injected failure",
     organic: "Natural failure",
-    clean: "Clean run",
+    clean: `Clean ${t("run")}`,
     replay: "Replay",
     repair: "Fix attempt",
-    live: "Live run",
+    live: `Live ${t("run")}`,
   };
   return (
     <span className="text-xs text-graphite">{labels[origin] ?? origin}</span>
@@ -217,16 +218,21 @@ export function Drawer({
 export function Popover({
   trigger,
   children,
+  closeOnContentClick = false,
 }: {
   trigger: ReactNode;
   children: ReactNode;
+  closeOnContentClick?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <span className="relative inline-block">
       <span onClick={() => setOpen(!open)}>{trigger}</span>
       {open && (
-        <span className="absolute right-0 top-full z-30 mt-2 w-72 rounded-panel border border-rule bg-panel p-4 text-sm shadow-popover">
+        <span
+          onClick={() => closeOnContentClick && setOpen(false)}
+          className="absolute right-0 top-full z-30 mt-2 w-72 rounded-panel border border-rule bg-panel p-4 text-sm shadow-popover"
+        >
           {children}
         </span>
       )}
@@ -363,7 +369,7 @@ export function EmptyState({
   );
 }
 export function ErrorState({
-  message = "Couldn't load this run. The server returned 500. Check that the API is running on port 8000, then reload.",
+  message = `Couldn't load this ${t("run")}. The server returned 500. Check that the API is running on port 8000, then reload.`,
   onRetry,
 }: {
   message?: string;

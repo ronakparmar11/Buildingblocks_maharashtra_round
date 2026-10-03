@@ -12,6 +12,7 @@ import {
   Skeleton,
   StepKey,
 } from "../components/ui";
+import { t } from "../lib/vocab";
 
 const PAGE_SIZE = 50;
 const options = {
@@ -22,10 +23,10 @@ const options = {
     ["error", "Error"],
   ],
   origin: [
-    ["", "Run type"],
+    ["", "Type"],
     ["fault", "Injected failure"],
     ["organic", "Natural failure"],
-    ["clean", "Clean run"],
+    ["clean", "Clean"],
     ["replay", "Replay"],
     ["repair", "Fix attempt"],
   ],
@@ -92,7 +93,7 @@ export default function RunsPage() {
         setFocused((value) => Math.max(0, value - 1));
       }
       if (event.key === "Enter" && focused >= 0 && runs.data?.items[focused])
-        navigate(`/runs/${runs.data.items[focused].run_id}`);
+        navigate(`/conversations/${runs.data.items[focused].run_id}`);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -119,19 +120,19 @@ export default function RunsPage() {
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
       <div className="mb-5 flex items-end justify-between">
-        <h1 className="heading text-xl">Runs</h1>
+        <h1 className="heading text-xl capitalize">{t("runs")}</h1>
         <span className="text-sm text-graphite">
-          {total.toLocaleString()} runs
+          {total.toLocaleString()} {t("runs")}
         </span>
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <label className="relative min-w-56 flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-graphite" />
           <input
-            aria-label="Search questions"
+            aria-label={`Search ${t("question")}s`}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search questions…"
+            placeholder={`Search ${t("question")}s…`}
             className="h-9 w-full rounded-control border border-rule bg-panel pl-9 pr-8"
           />
           {search && (
@@ -173,7 +174,7 @@ export default function RunsPage() {
             <thead>
               <tr className="h-10 border-b border-rule bg-paper text-xs text-graphite">
                 <th className="w-28 px-4 font-medium">Outcome</th>
-                <th className="px-3 font-medium">Question</th>
+                <th className="px-3 font-medium capitalize">{t("question")}</th>
                 <th className="w-20 px-3 text-right font-medium">Steps</th>
                 <th className="w-64 px-3 font-medium">Likely cause</th>
                 <th className="w-28 px-4 font-medium">When</th>
@@ -212,10 +213,10 @@ export default function RunsPage() {
                       }}
                       tabIndex={0}
                       onFocus={() => setFocused(index)}
-                      onClick={() => navigate(`/runs/${run.run_id}`)}
+                      onClick={() => navigate(`/conversations/${run.run_id}`)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter")
-                          navigate(`/runs/${run.run_id}`);
+                          navigate(`/conversations/${run.run_id}`);
                       }}
                       className="h-[61px] cursor-pointer border-b border-rule-soft outline-none hover:bg-rule-soft/60 focus:bg-rule-soft/60"
                     >
@@ -235,7 +236,7 @@ export default function RunsPage() {
                             <>
                               <span className="text-graphite">of</span>
                               <Link
-                                to={`/runs/${run.parent_run_id}`}
+                                to={`/conversations/${run.parent_run_id}`}
                                 onClick={(event) => event.stopPropagation()}
                                 className="font-mono text-advisory"
                               >
@@ -273,7 +274,7 @@ export default function RunsPage() {
           <ErrorState onRetry={() => runs.refetch()} />
         ) : !runs.isLoading && !runs.data?.items.length ? (
           <EmptyState
-            title="No runs match these filters. Clear filters to see all runs."
+            title={`No ${t("runs")} match these filters. Clear filters to see all ${t("runs")}.`}
             action={<Button onClick={clear}>Clear filters</Button>}
           />
         ) : (

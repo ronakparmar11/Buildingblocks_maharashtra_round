@@ -8,17 +8,28 @@ import type {
   JobCreatedResponse,
   JobResponse,
   LiveRunResponse,
+  RecipientCreate,
+  RecipientResponse,
   ReplayResponse,
   RunDetailResponse,
   RunListResponse,
   TaskRecord,
 } from "../api/types";
+import {
+  incidents,
+  nimbuOverview,
+  nimbuRuns,
+  notifications,
+  recipients,
+  rules,
+  workspaces,
+} from "./business";
 import { evaluation } from "./eval";
 import { fleet } from "./fleet";
 import { getMockDetail, getMockDiagnosis, runs } from "./generator";
 import { tasks } from "./hero-runs";
 
-const jobs = new Map<string, number>();
+const jobs = new Map<string, { started: number; type: "repair" | "simulate" }>();
 const wait = () =>
   new Promise((resolve) => setTimeout(resolve, 250 + Math.random() * 350));
 const summary = (id: string) =>
@@ -32,15 +43,114 @@ export async function mockRequest<T>(
   await wait();
   const url = new URL(path, "http://mock");
   const pathname = url.pathname.replace(/^\/api/, "");
+  const workspace = url.searchParams.get("workspace") ?? "hotpot";
+  if (pathname === "/workspaces") return workspaces as T;
+  if (pathname === "/overview")
+    return (workspace === "nimbu"
+      ? nimbuOverview
+      : {
+          headline: "No open incidents.",
+          kpis: { conversations: runs.length, wrong: 8, failure_rate: 0.0625, open_incidents: 0, estimated_cost_inr: 0 },
+          daily: nimbuOverview.daily.map((item) => ({ ...item, conversations: 18, wrong: 1, rate: 1 / 18 })),
+          open_incidents: [],
+          by_step_name: fleet.by_step_name,
+          by_reason: fleet.by_reason,
+          threshold: 0.2,
+        }) as T;
+  if (pathname === "/incidents" && method === "GET") {
+    let items = workspace === "nimbu" ? [...incidents] : [];
+    for (const key of ["status", "severity", "category"] as const) {
+      const value = url.searchParams.get(key);
+      if (value) items = items.filter((item) => item[key] === value);
+    }
+    return { items, total: items.length } as T;
+  }
+  const incidentMatch = pathname.match(/^\/incidents\/([^/]+)$/);
+  if (incidentMatch && method === "GET") {
+    const incident = incidents.find((item) => item.incident_id === incidentMatch[1]) ?? incidents[0];
+    const related = nimbuRuns.filter((item) => item.outcome === "fail").slice(0, incident.n_runs);
+    return {
+      incident,
+      explanation: "Customers asking about refunds are receiving the archived 30-day policy instead of the current 7-day policy.",
+      representative_run: related[0],
+      reasons: [
+        { feature: "archived_policy", text: "An archived help article ranked first.", evidence: "Return policy (2024) — archived", contribution: 0.62 },
+        { feature: "answer_support", text: "The reply contradicts the current policy.", evidence: "30 days instead of 7 days", contribution: 0.24 },
+      ],
+      runs: related.map((run) => ({ ...run, customer_message: run.question, agent_reply: "Yes, you can return it within 30 days.", correct_answer: "Returns are accepted within 7 days of delivery." })),
+      events: [
+        { event_id: "event_1", incident_id: incident.incident_id, kind: "opened", text: "Incident opened.", created_at: incident.first_seen, meta: {} },
+        { event_id: "event_2", incident_id: incident.incident_id, kind: "notified", text: "Notification sent to support-ai@nimbu.local.", created_at: incident.last_seen, meta: { notification_id: "mail_1" } },
+      ],
+      notifications: notifications.filter((item) => item.incident_id === incident.incident_id),
+    } as T;
+  }
+  if (incidentMatch && method === "PATCH") {
+    const incident = incidents.find((item) => item.incident_id === incidentMatch[1]) ?? incidents[0];
+    Object.assign(incident, body);
+    return incident as T;
+  }
+  if (/^\/incidents\/[^/]+\/notify$/.test(pathname))
+    return { notification_id: `mail_${Date.now()}` } as T;
+  if (/^\/incidents\/[^/]+\/verify-fix$/.test(pathname)) {
+    const id = `job_${Date.now()}`;
+    jobs.set(id, { started: Date.now(), type: "repair" });
+    return { job_id: id } as T;
+  }
+  if (pathname === "/notifications/status")
+    return { configured: true, host: "localhost", port: 1025, connected: true, sender: "Black Box <alerts@blackbox.local>", last_error: null, demo_mode_blocked: false } as T;
+  if (pathname === "/notifications/test" && method === "POST") return { status: "sent", error: null } as T;
+  if (pathname === "/notifications" && method === "GET") return { items: workspace === "nimbu" ? notifications : [] } as T;
+  const previewMatch = pathname.match(/^\/notifications\/([^/]+)\/preview$/);
+  if (previewMatch) {
+    const item = notifications.find((entry) => entry.notification_id === previewMatch[1]) ?? notifications[0];
+    return { subject: item.subject, html: `<h1>${item.subject}</h1><p>Nimbu Living support notification.</p>`, text: `${item.subject}\n\nNimbu Living support notification.` } as T;
+  }
+  if (pathname === "/notifications/digest" && method === "POST") return { notification_id: `mail_${Date.now()}` } as T;
+  if (pathname === "/recipients" && method === "GET") return (workspace === "nimbu" ? recipients : []) as T;
+  if (pathname === "/recipients" && method === "POST") {
+    const request = body as RecipientCreate;
+    const item: RecipientResponse = {
+      recipient_id: `recipient_${Date.now()}`,
+      name: request.name,
+      email: request.email,
+      workspace: request.workspace ?? "nimbu",
+      active: request.active ?? true,
+      rules: request.rules ?? [],
+    };
+    recipients.push(item);
+    return item as T;
+  }
+  const recipientMatch = pathname.match(/^\/recipients\/([^/]+)$/);
+  if (recipientMatch && method === "PATCH") {
+    const item = recipients.find((entry) => entry.recipient_id === recipientMatch[1])!;
+    Object.assign(item, body);
+    return item as T;
+  }
+  if (recipientMatch && method === "DELETE") return undefined as T;
+  if (pathname === "/rules" && method === "GET") return (workspace === "nimbu" ? rules : []) as T;
+  const ruleMatch = pathname.match(/^\/rules\/([^/]+)$/);
+  if (ruleMatch && method === "PUT") {
+    const item = rules.find((entry) => entry.rule_id === ruleMatch[1])!;
+    Object.assign(item, body);
+    return item as T;
+  }
+  if (pathname === "/settings/business" && method === "GET") return { cost_per_wrong_answer_inr: 450 } as T;
+  if (pathname === "/settings/business" && method === "PUT") return body as T;
+  if (pathname === "/simulate" && method === "POST") {
+    const id = `simulation_${Date.now()}`;
+    jobs.set(id, { started: Date.now(), type: "simulate" });
+    return { job_id: id } as T;
+  }
   if (pathname === "/health")
     return {
       status: "ok",
       demo_mode: true,
       model_version: "ranker-v3",
-      n_runs: runs.length,
+      n_runs: workspace === "nimbu" ? nimbuRuns.length : runs.length,
     } as T & HealthResponse;
   if (pathname === "/runs" && method === "GET") {
-    let filtered = [...runs];
+    let filtered = workspace === "nimbu" ? [...nimbuRuns] : [...runs];
     const outcome = url.searchParams.get("outcome");
     const origin = url.searchParams.get("origin");
     const q = url.searchParams.get("q")?.toLowerCase();
@@ -102,13 +212,25 @@ export async function mockRequest<T>(
   const repairMatch = pathname.match(/^\/runs\/([^/]+)\/repair\/jobs$/);
   if (repairMatch) {
     const id = `job_${Date.now()}`;
-    jobs.set(id, Date.now());
+    jobs.set(id, { started: Date.now(), type: "repair" });
     return { job_id: id } as T & JobCreatedResponse;
   }
   const jobMatch = pathname.match(/^\/jobs\/(.+)$/);
   if (jobMatch) {
-    const elapsed = Date.now() - (jobs.get(jobMatch[1]) ?? Date.now());
+    const job = jobs.get(jobMatch[1]) ?? { started: Date.now(), type: "repair" as const };
+    const elapsed = Date.now() - job.started;
     const progress = Math.min(1, elapsed / 2700);
+    if (job.type === "simulate")
+      return {
+        status: progress >= 1 ? "completed" : "running",
+        progress,
+        result: {
+          sent: Math.round(progress * 30),
+          failed: Math.round(progress * 11),
+          incidents_opened: progress > 0.55 ? 1 : 0,
+          emails_sent: progress > 0.7 ? 1 : 0,
+        },
+      } as T & JobResponse;
     const all = [
       {
         step_key: "q1/retrieve#0",
@@ -150,7 +272,26 @@ export async function mockRequest<T>(
     } as T & JobResponse;
   }
   const runMatch = pathname.match(/^\/runs\/([^/]+)$/);
-  if (runMatch) return getMockDetail(runMatch[1]) as T & RunDetailResponse;
+  if (runMatch) {
+    if (workspace === "nimbu") {
+      const summary = nimbuRuns.find((item) => item.run_id === runMatch[1]) ?? nimbuRuns[0];
+      const base = getMockDetail("r_natural_fail");
+      return {
+        ...base,
+        run: { ...base.run, run_id: summary.run_id, task_id: summary.task_id, origin: summary.origin, final_answer: summary.outcome === "fail" ? "Yes, you can return it within 30 days." : "Returns are accepted within 7 days of delivery.", outcome: summary.outcome, score_f1: summary.score_f1, n_steps: summary.n_steps, created_at: summary.created_at },
+        task: { ...base.task, task_id: summary.task_id, question: summary.question, gold_answer: "Returns are accepted within 7 days of delivery.", gold_titles: ["Return policy"] },
+        steps: base.steps.map((step) => {
+          if (step.name === "retrieve") return { ...step, output: { passages: [{ pid: "a_returns_current", title: "Return policy", text: "Returns are accepted within 7 days of delivery.", status: "current", score: 0.94 }] }, output_text: "Return policy" };
+          if (step.name === "extract") return { ...step, output: { answer: "30 days" }, output_text: "30 days" };
+          if (step.name === "check") return { ...step, output: { verdict: "unsupported" }, output_text: "unsupported" };
+          if (step.name === "synthesize") return { ...step, output: { answer: "Yes, you can return it within 30 days." }, output_text: "Yes, you can return it within 30 days." };
+          if (step.name === "plan") return { ...step, output: { subquestions: [{ id: "q1", text: "What is the current return window?" }, { id: "q2", text: "Does the product have a special exception?" }] }, output_text: "return window and exceptions" };
+          return step;
+        }),
+      } as T & RunDetailResponse;
+    }
+    return getMockDetail(runMatch[1]) as T & RunDetailResponse;
+  }
   if (pathname === "/compare") {
     const a = url.searchParams.get("a") ?? "r_scott_fail";
     const b = url.searchParams.get("b") ?? "r_scott_fixed";
@@ -195,8 +336,14 @@ export async function mockRequest<T>(
     } as T & CompareResponse;
   }
   if (pathname === "/eval") return evaluation as T;
-  if (pathname === "/fleet") return fleet as T & FleetResponse;
-  if (pathname === "/tasks") return tasks as T & TaskRecord[];
+  if (pathname === "/fleet")
+    return (workspace === "nimbu"
+      ? { by_step_name: nimbuOverview.by_step_name, by_reason: nimbuOverview.by_reason, by_fault_type: [], total_failed: nimbuOverview.kpis.wrong }
+      : fleet) as T & FleetResponse;
+  if (pathname === "/tasks")
+    return (workspace === "nimbu"
+      ? nimbuRuns.slice(0, 40).map((run) => ({ task_id: run.task_id, question: run.question, gold_answer: "Returns are accepted within 7 days of delivery.", qtype: "lookup", level: "medium", split: "test", gold_titles: ["Return policy"], distractor_pids: [] }))
+      : tasks) as T & TaskRecord[];
   if (/^\/tasks\/[^/]+\/fault-targets$/.test(pathname))
     return {
       targets: [
