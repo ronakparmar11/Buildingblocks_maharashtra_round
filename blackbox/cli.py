@@ -63,6 +63,7 @@ from blackbox.store.models import (
     Task,
 )
 from blackbox.store.repo import get_run, get_steps, get_task, list_tasks
+from blackbox.workspaces.seed import seed_demo_clients
 
 app = typer.Typer(help="Black Box agent flight recorder.")
 db_app = typer.Typer(help="Initialize and inspect the Black Box database.")
@@ -116,6 +117,15 @@ def db_stats() -> None:
         for model in TABLES:
             count = session.exec(select(func.count()).select_from(model)).one()
             typer.echo(f"{model.__tablename__}: {count}")
+
+
+@db_app.command("seed-clients")
+def db_seed_clients() -> None:
+    counts = seed_demo_clients()
+    typer.echo(
+        "Seeded {clients} clients, {tasks} tasks, {runs} runs, and "
+        "{incidents} incidents.".format(**counts)
+    )
 
 
 @corpus_app.command("build")

@@ -11,6 +11,7 @@ from blackbox.api.schemas import (
     TaskListResponse,
 )
 from blackbox.config import get_settings
+from blackbox.incidents.engine import on_run_finished
 from blackbox.sdk.cassette import DEMO_CASSETTE_MISS_MESSAGE, CassetteMissError
 from blackbox.store.db import get_session
 from blackbox.store.models import Run, Task
@@ -130,8 +131,7 @@ def _run_fault(
             get_settings().SEED,
             run_id,
         )
-    _raise_demo_cassette_miss(run)
-    return {"run_id": run_id}
+    return _finish_live_run(run)
 
 
 def _run_clean(task_id: str, run_id: str) -> dict[str, str]:
@@ -155,8 +155,13 @@ def _run_clean(task_id: str, run_id: str) -> dict[str, str]:
             retriever=get_retriever(task.workspace),
         )
         run = run_agent(task, context)
+    return _finish_live_run(run)
+
+
+def _finish_live_run(run: Run) -> dict[str, str]:
     _raise_demo_cassette_miss(run)
-    return {"run_id": run_id}
+    on_run_finished(run)
+    return {"run_id": run.run_id}
 
 
 def _raise_demo_cassette_miss(run: Run) -> None:

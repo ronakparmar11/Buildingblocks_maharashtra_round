@@ -30,6 +30,7 @@ import IncidentDetailPage from "./pages/IncidentDetailPage";
 import SettingsNotificationsPage from "./pages/SettingsNotificationsPage";
 import LandingPage from "./pages/LandingPage";
 import SignInPage from "./pages/SignInPage";
+import VoiceLabPage from "./pages/VoiceLabPage";
 
 function LegacyRunRedirect() {
   const { id } = useParams();
@@ -71,6 +72,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
           c: "/conversations",
           e: "/eval",
           l: "/lab",
+          v: "/voice-lab",
           s: "/settings",
         };
         if (routes[event.key]) navigate(routes[event.key]);
@@ -86,6 +88,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
     ["/conversations", "Conversations"],
     ["/eval", "Evaluation"],
     ["/lab", "Live lab"],
+    ["/voice-lab", "Voice lab"],
     ["/settings", "Settings"],
   ];
   return (
@@ -188,6 +191,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
           <Route path="/eval" element={<EvaluationPage />} />
           <Route path="/fleet" element={<Navigate replace to="/" />} />
           <Route path="/lab" element={<LiveLabPage />} />
+          <Route path="/voice-lab" element={<VoiceLabPage />} />
           <Route path="/settings" element={<Navigate replace to="/settings/notifications" />} />
           <Route path="/settings/notifications" element={<SettingsNotificationsPage />} />
           <Route path="/styleguide" element={<Styleguide />} />
@@ -221,6 +225,8 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
               <dd>Evaluation</dd>
               <dt className="font-mono">g l</dt>
               <dd>Live lab</dd>
+              <dt className="font-mono">g v</dt>
+              <dd>Voice lab</dd>
               <dt className="font-mono">g s</dt>
               <dd>Settings</dd>
               <dt className="font-mono">?</dt>
