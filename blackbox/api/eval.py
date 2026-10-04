@@ -12,10 +12,15 @@ router = APIRouter()
 
 @router.get("/eval", response_model=EvalResponse)
 def get_evaluation(workspace: str = "hotpot") -> EvalResponse:
-    del workspace
     if mock_mode():
         return EvalResponse.model_validate(load_fixture("mock_api.json")["eval"])
-    path = Path(get_settings().ARTIFACTS_DIR) / "eval.json"
+    artifact_dir = Path(get_settings().ARTIFACTS_DIR)
+    workspace_path = artifact_dir / f"eval_{workspace}.json"
+    path = (
+        workspace_path
+        if workspace in {"hotpot", "nimbu"} and workspace_path.exists()
+        else artifact_dir / "eval.json"
+    )
     if not path.exists():
         raise HTTPException(status_code=404, detail="Evaluation artifact not found")
     return EvalResponse.model_validate(json.loads(path.read_text(encoding="utf-8")))

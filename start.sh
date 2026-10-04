@@ -41,6 +41,8 @@ port_in_use 5173 && fail "Port 5173 is already in use. Stop the existing fronten
 export BLACKBOX_DEMO_MODE=0
 export BLACKBOX_MOCK_API=0
 
+.venv/bin/bb db seed-nimbu-demo
+
 .venv/bin/python -m uvicorn blackbox.api:app --host 127.0.0.1 --port 8000 &
 API_PID=$!
 

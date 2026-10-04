@@ -66,6 +66,27 @@ def test_mock_fixtures_validate_against_response_models() -> None:
     )
 
 
+def test_evaluation_prefers_workspace_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from blackbox.api.eval import get_evaluation
+
+    (tmp_path / "eval.json").write_text(
+        json.dumps({"test_questions": 0}), encoding="utf-8"
+    )
+    (tmp_path / "eval_nimbu.json").write_text(
+        json.dumps({"test_questions": 14}), encoding="utf-8"
+    )
+    monkeypatch.setenv("BLACKBOX_MOCK_API", "0")
+    monkeypatch.setenv("ARTIFACTS_DIR", str(tmp_path))
+    get_settings.cache_clear()
+
+    assert get_evaluation("nimbu").root["test_questions"] == 14
+    assert get_evaluation("hotpot").root["test_questions"] == 0
+
+    get_settings.cache_clear()
+
+
 def test_every_mock_endpoint(mock_client: TestClient) -> None:
     requests = [
         ("get", "/api/runs", None),

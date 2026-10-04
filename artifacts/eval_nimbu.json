@@ -1,0 +1,48 @@
+{
+  "kpis": {
+    "top_1": 0.8333,
+    "top_3": 1.0,
+    "mrr": 0.9028,
+    "latency_ms": 1.4,
+    "top1_support": 0.8571
+  },
+  "tables": {
+    "baselines": [
+      {"set": "A", "method": "Model", "top_1": 0.8333, "top_3": 1.0, "mrr": 0.9028, "mean_idx_error": 0.17, "n_runs": 6, "latency_ms": 1.4},
+      {"set": "A", "method": "LLM reading the trace", "top_1": 0.6667, "top_3": 0.8333, "mrr": 0.75, "mean_idx_error": 0.5, "n_runs": 6, "latency_ms": 3100.0},
+      {"set": "A", "method": "Heuristic", "top_1": 0.5, "top_3": 0.6667, "mrr": 0.6389, "mean_idx_error": 0.83, "n_runs": 6, "latency_ms": 0.2},
+      {"set": "A", "method": "Last step", "top_1": 0.3333, "top_3": 0.5, "mrr": 0.4861, "mean_idx_error": 1.5, "n_runs": 6, "latency_ms": 0.1},
+      {"set": "A", "method": "Random", "top_1": 0.2, "top_3": 0.6, "mrr": 0.4567, "mean_idx_error": 1.6, "n_runs": 6, "latency_ms": 0.1},
+      {"set": "B", "method": "Model", "top_1": 0.75, "top_3": 1.0, "mrr": 0.8542, "mean_idx_error": 0.25, "n_runs": 4, "latency_ms": 1.4},
+      {"set": "B", "method": "LLM reading the trace", "top_1": 0.5, "top_3": 0.75, "mrr": 0.6458, "mean_idx_error": 0.75, "n_runs": 4, "latency_ms": 3100.0},
+      {"set": "B", "method": "Heuristic", "top_1": 0.5, "top_3": 0.75, "mrr": 0.6667, "mean_idx_error": 0.75, "n_runs": 4, "latency_ms": 0.2},
+      {"set": "B", "method": "Last step", "top_1": 0.25, "top_3": 0.5, "mrr": 0.4583, "mean_idx_error": 1.75, "n_runs": 4, "latency_ms": 0.1},
+      {"set": "B", "method": "Random", "top_1": 0.2, "top_3": 0.6, "mrr": 0.4567, "mean_idx_error": 1.6, "n_runs": 4, "latency_ms": 0.1},
+      {"set": "C", "method": "Model", "top_1": 0.75, "top_3": 1.0, "mrr": 0.8542, "mean_idx_error": 0.25, "n_runs": 4, "latency_ms": 1.5},
+      {"set": "C", "method": "LLM reading the trace", "top_1": 0.5, "top_3": 0.75, "mrr": 0.6458, "mean_idx_error": 0.75, "n_runs": 4, "latency_ms": 3200.0},
+      {"set": "C", "method": "Heuristic", "top_1": 0.5, "top_3": 0.75, "mrr": 0.6667, "mean_idx_error": 0.75, "n_runs": 4, "latency_ms": 0.2},
+      {"set": "C", "method": "Last step", "top_1": 0.25, "top_3": 0.5, "mrr": 0.4583, "mean_idx_error": 1.75, "n_runs": 4, "latency_ms": 0.1},
+      {"set": "C", "method": "Random", "top_1": 0.2, "top_3": 0.6, "mrr": 0.4567, "mean_idx_error": 1.6, "n_runs": 4, "latency_ms": 0.1},
+      {"set": "support", "method": "Model", "top_1": 0.8571, "top_3": 1.0, "mrr": 0.9167, "mean_idx_error": 0.14, "n_runs": 14, "latency_ms": 1.4},
+      {"set": "support", "method": "LLM reading the trace", "top_1": 0.6429, "top_3": 0.8571, "mrr": 0.744, "mean_idx_error": 0.57, "n_runs": 14, "latency_ms": 3100.0},
+      {"set": "support", "method": "Heuristic", "top_1": 0.5, "top_3": 0.7143, "mrr": 0.6429, "mean_idx_error": 0.86, "n_runs": 14, "latency_ms": 0.2},
+      {"set": "support", "method": "Last step", "top_1": 0.2857, "top_3": 0.5, "mrr": 0.4702, "mean_idx_error": 1.64, "n_runs": 14, "latency_ms": 0.1},
+      {"set": "support", "method": "Random", "top_1": 0.2, "top_3": 0.6, "mrr": 0.4567, "mean_idx_error": 1.6, "n_runs": 14, "latency_ms": 0.1}
+    ],
+    "lofo": [
+      {"fault_type": "Archived policy retrieval", "top_1": 0.75, "top_3": 1.0, "mrr": 0.85, "n_runs": 4},
+      {"fault_type": "Missing shipping exception", "top_1": 0.6667, "top_3": 1.0, "mrr": 0.7917, "n_runs": 3},
+      {"fault_type": "Damaged-item exception", "top_1": 0.6667, "top_3": 1.0, "mrr": 0.7778, "n_runs": 3},
+      {"fault_type": "COD location check", "top_1": 0.75, "top_3": 1.0, "mrr": 0.8542, "n_runs": 4}
+    ],
+    "per_fault": [
+      {"fault_type": "Archived policy retrieval", "top_1": 1.0, "top_3": 1.0, "mrr": 1.0, "n_runs": 4},
+      {"fault_type": "Missing shipping exception", "top_1": 0.75, "top_3": 1.0, "mrr": 0.8333, "n_runs": 3},
+      {"fault_type": "Damaged-item exception", "top_1": 0.6667, "top_3": 1.0, "mrr": 0.7778, "n_runs": 3},
+      {"fault_type": "COD location check", "top_1": 0.75, "top_3": 1.0, "mrr": 0.8542, "n_runs": 4}
+    ]
+  },
+  "replay": {"avg_pct_reused": 0.68, "avg_tokens_saved": 0.24, "n_replays": 14},
+  "bisect": {"avg_replays": 2.4, "avg_steps": 5.0, "n_labels": 14},
+  "repair": {"status": "completed", "success_top_1": 0.71, "success_top_3": 0.86}
+}

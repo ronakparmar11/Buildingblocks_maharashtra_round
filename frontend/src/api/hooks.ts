@@ -14,9 +14,13 @@ export const useRuns = (query = "") => {
   const { workspace } = useWorkspace();
   return useQuery({ queryKey: ["runs", workspace, query], queryFn: () => apiGet<T.RunListResponse>(scoped(`/runs?${query}`, workspace)) });
 };
-export const useRun = (id?: string, waitForCreation = false) => {
+export const useRun = (
+  id?: string,
+  waitForCreation = false,
+  enabled = true,
+) => {
   const { workspace } = useWorkspace();
-  return useQuery({ queryKey: ["run", workspace, id], queryFn: () => apiGet<T.RunDetailResponse>(scoped(`/runs/${id}`, workspace)), enabled: Boolean(id), retry: (failureCount, error) => error instanceof ApiError && error.status === 404 && failureCount < (waitForCreation ? 60 : 8), retryDelay: 500 });
+  return useQuery({ queryKey: ["run", workspace, id], queryFn: () => apiGet<T.RunDetailResponse>(scoped(`/runs/${id}`, workspace)), enabled: Boolean(id) && enabled, retry: (failureCount, error) => error instanceof ApiError && error.status === 404 && failureCount < (waitForCreation ? 60 : 8), retryDelay: 500 });
 };
 export const useDiagnosis = (id?: string, enabled = true) => {
   const { workspace } = useWorkspace();

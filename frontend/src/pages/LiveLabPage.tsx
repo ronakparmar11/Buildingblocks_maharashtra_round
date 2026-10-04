@@ -67,7 +67,8 @@ export default function LiveLabPage() {
   const [target, setTarget] = useState("");
   const live = useLiveRun();
   const [runId, setRunId] = useState<string>();
-  const run = useRun(runId, true);
+  const liveJob = useJob(runId);
+  const run = useRun(runId, false, liveJob.data?.status === "completed");
   const diagnosis = useDiagnosis(runId, Boolean(run.data));
   const targets = useFaultTargets(taskId);
   const [reveal, setReveal] = useState(-1);
@@ -231,6 +232,19 @@ export default function LiveLabPage() {
           Run the agent
         </Button>
       </div>
+      {runId && !run.data && liveJob.data?.status !== "failed" && (
+        <section className="mt-6 flex items-center gap-3 border-y border-rule bg-panel p-5 text-graphite">
+          <LoaderCircle className="h-5 w-5 animate-spin" />
+          {liveJob.data?.status === "queued"
+            ? "Waiting to run the agent…"
+            : "Running the agent and recording its trace…"}
+        </section>
+      )}
+      {liveJob.data?.status === "failed" && (
+        <div className="mt-5">
+          <ErrorState onRetry={reset} />
+        </div>
+      )}
       {run.isError && (
         <div className="mt-5">
           <ErrorState onRetry={() => run.refetch()} />
@@ -373,7 +387,7 @@ export default function LiveLabPage() {
           </div>
         </section>
       )}
-      {runId && !startedFixes && (
+      {run.data && !startedFixes && (
         <div className="mt-4 text-right">
           <Link to={`/conversations/${runId}`} className="text-sm text-advisory">
             Open full {t("run")}

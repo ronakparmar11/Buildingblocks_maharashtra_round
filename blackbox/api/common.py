@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from blackbox.api.schemas import RunSummary
 from blackbox.config import get_settings
-from blackbox.store.models import Run, Step
+from blackbox.store.models import Prediction, Run, Step, Task
 from blackbox.store.repo import get_predictions, get_task
 
 FIXTURE_DIR = Path(__file__).with_name("fixtures")
@@ -46,11 +46,20 @@ def fixture_run_summary(run_data: dict[str, Any] | None = None) -> RunSummary:
     )
 
 
-def run_summary(session: Session, run: Run) -> RunSummary:
-    task = get_task(session, run.task_id)
+def run_summary(
+    session: Session,
+    run: Run,
+    task: Task | None = None,
+    predictions: list[Prediction] | None = None,
+) -> RunSummary:
+    task = task or get_task(session, run.task_id)
     if task is None:
         raise ValueError(f"Task not found for run: {run.run_id}")
-    predictions = get_predictions(session, run.run_id)
+    predictions = (
+        predictions
+        if predictions is not None
+        else get_predictions(session, run.run_id)
+    )
     culprit = None
     if predictions:
         culprit = {

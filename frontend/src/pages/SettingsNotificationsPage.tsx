@@ -76,7 +76,15 @@ export default function SettingsNotificationsPage() {
       return;
     }
     const result = await testEmail.mutateAsync({ to: defaultAddress });
-    setTestResult(result.status === "sent" ? `Test email sent to ${defaultAddress}. Check your inbox (Mailpit: localhost:8025).` : `Test email failed: ${result.error ?? "check the mail server"}.`);
+    await notifications.refetch();
+    const usesMailpit = ["localhost", "127.0.0.1", "::1"].includes(
+      server.data?.host ?? "",
+    );
+    setTestResult(
+      result.status === "sent"
+        ? `Test email sent to ${defaultAddress}.${usesMailpit ? " Check Mailpit at localhost:8025." : ""}`
+        : `Test email failed: ${result.error ?? "check the mail server"}.`,
+    );
   };
   const addRecipient = async () => {
     if (!newName.trim()) return setAddError("Enter a recipient name.");

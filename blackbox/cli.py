@@ -63,6 +63,7 @@ from blackbox.store.models import (
     Task,
 )
 from blackbox.store.repo import get_run, get_steps, get_task, list_tasks
+from blackbox.workspaces.nimbu.demo_seed import seed_nimbu_demo_data
 
 app = typer.Typer(help="Black Box agent flight recorder.")
 db_app = typer.Typer(help="Initialize and inspect the Black Box database.")
@@ -116,6 +117,15 @@ def db_stats() -> None:
         for model in TABLES:
             count = session.exec(select(func.count()).select_from(model)).one()
             typer.echo(f"{model.__tablename__}: {count}")
+
+
+@db_app.command("seed-nimbu-demo")
+def db_seed_nimbu_demo() -> None:
+    result = seed_nimbu_demo_data()
+    typer.echo(
+        f"Nimbu demo ready: {result.created_runs} runs and "
+        f"{result.created_incidents} incidents created."
+    )
 
 
 @corpus_app.command("build")

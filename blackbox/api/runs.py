@@ -14,7 +14,7 @@ from blackbox.api.schemas import (
     RunListResponse,
 )
 from blackbox.store.db import get_session
-from blackbox.store.models import Prediction, Run, Task
+from blackbox.store.models import Fault, Prediction, Run, Task
 from blackbox.store.repo import get_fault, get_label, get_predictions, get_steps
 
 router = APIRouter()
@@ -54,10 +54,22 @@ def list_run_records(
                 .order_by(col(Run.created_at).desc())
             ).all()
         )
+        tasks = {
+            task.task_id: task
+            for task in session.exec(
+                select(Task).where(Task.task_id.in_({run.task_id for run in runs}))
+            ).all()
+        }
+        faults = {
+            fault.run_id: fault
+            for fault in session.exec(
+                select(Fault).where(Fault.run_id.in_({run.run_id for run in runs}))
+            ).all()
+        }
         matched: list[Run] = []
         for run in runs:
-            task = session.get(Task, run.task_id)
-            fault = get_fault(session, run.run_id)
+            task = tasks.get(run.task_id)
+            fault = faults.get(run.run_id)
             if task is None:
                 continue
             if outcome is not None and run.outcome != outcome:
@@ -75,8 +87,28 @@ def list_run_records(
             if q and q.casefold() not in task.question.casefold():
                 continue
             matched.append(run)
+        selected = matched[offset : offset + limit]
+        selected_ids = {run.run_id for run in selected}
+        predictions_by_run: dict[str, list[Prediction]] = {
+            run_id: [] for run_id in selected_ids
+        }
+        if selected_ids:
+            for prediction in session.exec(
+                select(Prediction)
+                .where(Prediction.run_id.in_(selected_ids))
+                .order_by(Prediction.run_id, Prediction.rank)
+            ).all():
+                predictions_by_run[prediction.run_id].append(prediction)
         return RunListResponse(
-            items=[run_summary(session, run) for run in matched[offset : offset + limit]],
+            items=[
+                run_summary(
+                    session,
+                    run,
+                    task=tasks[run.task_id],
+                    predictions=predictions_by_run[run.run_id],
+                )
+                for run in selected
+            ],
             total=len(matched),
         )
 

@@ -76,14 +76,15 @@ make install
 .venv/bin/bb features build
 .venv/bin/bb train
 .venv/bin/bb eval --judge-limit 30
-./start.sh                    # App, API, and Mailpit together
+./start.sh                    # App and API together
 ```
 
 `start.sh` runs the real development stack at `http://127.0.0.1:5173`, with the
-API at `http://127.0.0.1:8000` and Mailpit at `http://127.0.0.1:8025`. It uses
-the configured LLM provider and Neon Postgres when `DATABASE_URL` is set, with
-SQLite available as a local fallback. Install Mailpit with
-`brew install mailpit` if it is not already available.
+API at `http://127.0.0.1:8000`. It uses the configured LLM provider and Neon
+Postgres when `DATABASE_URL` is set, with SQLite available as a local fallback.
+Startup also idempotently seeds historical Nimbu Living support activity: 80
+completed conversations, diagnosed failures, full traces, and four incidents.
+SMTP delivery uses the provider configured in `.env`.
 
 For an offline presentation using pre-recorded LLM cassettes, use the separate
 demo stack:

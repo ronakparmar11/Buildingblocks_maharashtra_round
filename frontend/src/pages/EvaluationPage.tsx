@@ -273,8 +273,8 @@ export default function EvaluationPage() {
             </tbody>
           </table>
           <p className="mt-2 text-sm text-graphite">
-            The LLM takes 3.1 s and one API call per run; Black Box takes 1.2
-            ms.
+            The LLM takes 3.1 s and one API call per run; Black Box takes{" "}
+            {data.headline.latency_ms} ms.
           </p>
         </section>
         <section className="border-b border-rule bg-panel p-5">
