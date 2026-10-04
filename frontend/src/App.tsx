@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Keyboard, LogOut, Menu, Star, X } from "lucide-react";
+import { ChevronDown, Keyboard, LogOut, Menu, X } from "lucide-react";
 import {
   Navigate,
   NavLink,
@@ -9,7 +9,6 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { useHealth } from "./api/hooks";
 import { apiGet, apiPost } from "./api/client";
 import type { SessionResponse } from "./api/types";
 import { LogoMark } from "./components/Logo";
@@ -29,7 +28,6 @@ import OverviewPage from "./pages/OverviewPage";
 import IncidentsPage from "./pages/IncidentsPage";
 import IncidentDetailPage from "./pages/IncidentDetailPage";
 import SettingsNotificationsPage from "./pages/SettingsNotificationsPage";
-import JudgeDemoPage from "./pages/JudgeDemoPage";
 import LandingPage from "./pages/LandingPage";
 import SignInPage from "./pages/SignInPage";
 
@@ -39,8 +37,20 @@ function LegacyRunRedirect() {
   return <Navigate replace to={`${id ? `/conversations/${id}` : "/conversations"}${location.search}`} />;
 }
 
+// function useTheme() {
+//   const [dark, setDark] = useState(() => {
+//     const stored = localStorage.getItem("blackbox-theme");
+//     if (stored) return stored === "dark";
+//     return window.matchMedia("(prefers-color-scheme: dark)").matches;
+//   });
+//   useEffect(() => {
+//     document.documentElement.classList.toggle("dark", dark);
+//     localStorage.setItem("blackbox-theme", dark ? "dark" : "light");
+//   }, [dark]);
+//   return { dark, toggle: () => setDark((d) => !d) };
+// }
+
 function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut: () => void }) {
-  const health = useHealth();
   const { workspace, setWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [shortcuts, setShortcuts] = useState(false);
@@ -72,7 +82,6 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
   }, [navigate]);
   const links = [
     ["/", "Overview"],
-    ["/judge-demo", "Judge demo"],
     ["/incidents", "Incidents"],
     ["/conversations", "Conversations"],
     ["/eval", "Evaluation"],
@@ -126,7 +135,6 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <NavLink to="/judge-demo" title="Open the saved judge demo" className="hidden h-8 items-center gap-1.5 rounded-control bg-orange-tint px-3 text-xs font-medium text-orange lg:flex"><Star className="h-3.5 w-3.5" /> Judge demo</NavLink>
             <span className="md:hidden">
               <Popover
                 closeOnContentClick
@@ -155,16 +163,6 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
                 </nav>
               </Popover>
             </span>
-            <span className="rounded-chip bg-rule-soft px-2.5 py-1 text-xs">
-              {import.meta.env.VITE_USE_MOCKS === "true"
-                ? "Demo data"
-                : health.data?.demo_mode
-                  ? "Demo mode"
-                  : "Live"}
-            </span>
-            <span className="hidden font-mono text-xs text-graphite md:inline">
-              {health.data?.model_version ?? "v3"}
-            </span>
             <button
               aria-label="Keyboard shortcuts"
               onClick={() => setShortcuts(true)}
@@ -178,9 +176,8 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
       </header>
       <main>
         <Routes>
-          <Route path="/signin" element={<Navigate replace to="/judge-demo" />} />
+          <Route path="/signin" element={<Navigate replace to="/" />} />
           <Route path="/" element={<OverviewPage />} />
-          <Route path="/judge-demo" element={<JudgeDemoPage />} />
           <Route path="/incidents" element={<IncidentsPage />} />
           <Route path="/incidents/:id" element={<IncidentDetailPage />} />
           <Route path="/conversations" element={<RunsPage />} />
@@ -198,7 +195,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
       </main>
       {shortcuts && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-ink/20 animate-[fadeIn_150ms_ease-out]"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/20 animate-[fadeIn_150ms_ease-out]"
           onClick={() => setShortcuts(false)}
         >
           <div
@@ -240,7 +237,7 @@ function App() {
   useEffect(() => {
     apiGet<SessionResponse>("/auth/session").then(setSession).catch(() => setSession(null));
   }, []);
-  if (session === undefined) return <div className="grid min-h-screen place-items-center bg-ink text-sm text-white/70"><div className="flex flex-col items-center gap-4"><LogoMark className="h-12 w-12 animate-pulse" /><span>Opening Black Box...</span></div></div>;
+  if (session === undefined) return <div className="grid min-h-screen place-items-center bg-[#14202B] text-sm text-white/70"><div className="flex flex-col items-center gap-4"><LogoMark className="h-12 w-12 animate-pulse" /><span>Opening Black Box...</span></div></div>;
   if (session === null) return <Routes><Route path="/" element={<LandingPage />} /><Route path="/signin" element={<SignInPage onSignedIn={setSession} />} /><Route path="*" element={<Navigate replace to="/" />} /></Routes>;
   const signOut = async () => {
     await apiPost<void>("/auth/logout");

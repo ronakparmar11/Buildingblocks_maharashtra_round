@@ -33,7 +33,7 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function statusStyle(status: string) {
   if (status === "sent") return "bg-normal-tint text-normal";
-  if (status === "failed") return "bg-[#F9DEE2] text-warning";
+  if (status === "failed") return "bg-warning-tint-deep text-warning";
   if (status === "queued") return "bg-caution-tint text-ink";
   return "bg-rule-soft text-graphite";
 }
@@ -104,7 +104,7 @@ export default function SettingsNotificationsPage() {
         <nav className="mt-5"><NavLink to="/settings/notifications" className="block border-l-2 border-ink py-2 pl-3 text-sm font-medium">Notifications</NavLink></nav>
       </aside>
       <div className="min-w-0 px-4 py-7 sm:px-7 lg:px-10">
-        <div className="mb-7"><h2 className="heading text-2xl">Notifications</h2><p className="mt-1 text-sm text-graphite">Choose who hears about failures and when.</p></div>
+        <div className="mb-8"><h2 className="heading text-2xl">Notifications</h2><p className="mt-1 text-sm text-graphite">Choose who hears about failures and when.</p></div>
         {failed ? <ErrorState onRetry={() => { server.refetch(); recipients.refetch(); rules.refetch(); settings.refetch(); notifications.refetch(); }} /> : loading ? <div className="space-y-5"><Skeleton className="h-32" /><Skeleton className="h-56" /><Skeleton className="h-64" /></div> : <>
           <section className="border-y border-rule py-6">
             <div className="flex flex-wrap items-start justify-between gap-4"><div><h3 className="heading text-lg">Mail server</h3><p className="mt-3 flex items-center gap-2 text-sm"><span className={`h-2 w-2 rounded-full ${server.data?.connected ? "bg-normal" : "bg-warning"}`} />{server.data?.connected ? `Connected to ${server.data.host}:${server.data.port}${server.data.host === "localhost" ? " (Mailpit)" : ""}` : `Can't reach the mail server at ${server.data?.host}:${server.data?.port}. Start Mailpit or update SMTP settings in .env.`}</p><p className="mt-2 text-sm text-graphite">Sender: {server.data?.sender}</p><p className="mt-1 text-xs text-graphite">Change these settings in the <code>.env</code> file on the server.</p></div>{server.data?.host === "localhost" && <a href="http://localhost:8025" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-advisory">Open Mailpit inbox <ExternalLink className="h-3.5 w-3.5" /></a>}</div>
@@ -131,7 +131,7 @@ export default function SettingsNotificationsPage() {
         </>}
       </div>
       <EmailPreviewDrawer notificationId={previewId} onClose={() => setPreviewId(undefined)} />
-      {removeTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4" role="dialog" aria-modal="true" aria-label="Remove recipient"><div className="w-full max-w-md rounded-panel border border-rule bg-panel p-6 shadow-popover"><h2 className="heading text-lg">Remove {removeTarget.name}?</h2><p className="mt-3 text-sm text-graphite">They will stop receiving every Black Box notification.</p><div className="mt-6 flex justify-end gap-2"><Button onClick={() => setRemoveTarget(undefined)}>Cancel</Button><Button variant="ink" loading={deleteRecipient.isPending} onClick={async () => { await deleteRecipient.mutateAsync(removeTarget.recipient_id); setRemoveTarget(undefined); await recipients.refetch(); }}>Remove</Button></div></div></div>}
+      {removeTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4" role="dialog" aria-modal="true" aria-label="Remove recipient"><div className="w-full max-w-md rounded-panel border border-rule bg-panel p-6 shadow-popover"><h2 className="heading text-lg">Remove {removeTarget.name}?</h2><p className="mt-3 text-sm text-graphite">They will stop receiving every Black Box notification.</p><div className="mt-6 flex justify-end gap-2"><Button onClick={() => setRemoveTarget(undefined)}>Cancel</Button><Button variant="ink" loading={deleteRecipient.isPending} onClick={async () => { await deleteRecipient.mutateAsync(removeTarget.recipient_id); setRemoveTarget(undefined); await recipients.refetch(); }}>Remove</Button></div></div></div>}
     </div>
   );
 }

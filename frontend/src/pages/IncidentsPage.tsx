@@ -62,12 +62,12 @@ export default function IncidentsPage() {
   const showAll = () => setParams({ status: "all" });
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
-      <div className="mb-5 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="heading text-xl">Incidents</h1>
+          <h1 className="heading text-2xl">Incidents</h1>
           <p className="mt-1 text-sm text-graphite">Handle a shared failure once, not conversation by conversation.</p>
         </div>
-        <span className="text-sm text-graphite">{items.length} shown</span>
+        <span className="rounded-chip bg-rule-soft px-2.5 py-1 text-xs text-graphite">{items.length} shown</span>
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         <Select

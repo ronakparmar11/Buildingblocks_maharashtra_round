@@ -106,7 +106,7 @@ function Waypoint({ data }: NodeProps<WaypointNode>) {
       {groundTruth && (
         <span
           title={groundTruth === "injected" ? "Injected here" : "Proven cause"}
-          className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-ink text-white"
+          className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-ink-btn text-white"
         >
           <Flag className="h-3 w-3" />
         </span>
@@ -220,6 +220,7 @@ export default function ExecutionRoute({
         nodes={nodes}
         edges={flowEdges}
         nodeTypes={nodeTypes}
+        colorMode="light"
         fitView
         fitViewOptions={{ padding: compact ? 0.05 : 0.15 }}
         minZoom={0.35}

@@ -23,7 +23,7 @@ const inr = new Intl.NumberFormat("en-IN", {
 });
 const icons = { retrieve: Search, extract: TextSelect, plan: Map, check: ShieldCheck, synthesize: Merge };
 const severityStyles: Record<string, { dot: string; bg: string }> = {
-  high: { dot: "bg-warning", bg: "bg-[#fdf2f4]" },
+  high: { dot: "bg-warning", bg: "bg-warning-tint" },
   medium: { dot: "bg-caution", bg: "bg-caution-tint" },
   low: { dot: "bg-graphite", bg: "bg-rule-soft" },
 };
@@ -57,7 +57,7 @@ function HorizontalBars({
             </span>
             <span className="h-2 overflow-hidden rounded-chip bg-rule-soft">
               <span
-                className={`block h-full rounded-chip transition-all ${index === 0 ? "bg-orange" : "bg-ink/60"}`}
+                className={`block h-full rounded-chip transition-all ${index === 0 ? "bg-orange" : "bg-graphite"}`}
                 style={{ width: `${pct}%` }}
               />
             </span>
@@ -160,10 +160,10 @@ export default function OverviewPage() {
                 <YAxis tickFormatter={(value) => `${value}%`} axisLine={false} tickLine={false} tick={{ fill: CHART.graphite, fontSize: 12 }} />
                 <Tooltip
                   formatter={(value) => [`${Number(value).toFixed(1)}%`, "Answered wrong"]}
-                  contentStyle={{ borderRadius: 8, border: `1px solid ${CHART.rule}`, boxShadow: "0 4px 12px rgba(20,32,43,.1)" }}
+                  contentStyle={{ borderRadius: 8, border: `1px solid ${CHART.rule}`, backgroundColor: CHART.panel, color: CHART.ink, boxShadow: "0 4px 12px rgba(20,32,43,.1)" }}
                 />
                 <ReferenceLine y={data.threshold * 100} stroke={CHART.caution} strokeDasharray="5 4" label={{ value: "Alert threshold", fill: CHART.graphite, fontSize: 11, position: "insideTopRight" }} />
-                <Line type="monotone" dataKey="percentage" stroke={CHART.orange} strokeWidth={2.5} dot={{ r: 3, fill: CHART.orange, strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }} />
+                <Line type="monotone" dataKey="percentage" stroke={CHART.orange} strokeWidth={2.5} dot={{ r: 3, fill: CHART.orange, strokeWidth: 2, stroke: CHART.panel }} activeDot={{ r: 5, strokeWidth: 2, stroke: CHART.panel }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -172,7 +172,7 @@ export default function OverviewPage() {
         <section className="rounded-panel border border-rule bg-panel p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="grid h-8 w-8 place-items-center rounded-control bg-[#fdf2f4] text-warning"><AlertTriangle className="h-4 w-4" /></span>
+              <span className="grid h-8 w-8 place-items-center rounded-control bg-warning-tint text-warning"><AlertTriangle className="h-4 w-4" /></span>
               <h2 className="heading text-lg">Open incidents</h2>
             </div>
             <Link to="/incidents" className="inline-flex items-center gap-1 text-xs font-medium text-advisory transition-colors hover:text-ink">View all <ArrowRight className="h-3 w-3" /></Link>

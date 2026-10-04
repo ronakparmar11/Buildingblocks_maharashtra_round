@@ -66,7 +66,7 @@ export default function JudgeDemoPage() {
               <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">Customer question</p>
               <h2 className="heading mt-3 max-w-3xl text-xl">{run.task.question}</h2>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-node border border-warning/20 bg-[#fdf2f4] p-4">
+                <div className="rounded-node border border-warning/20 bg-warning-tint p-4">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-warning/70">AI answered</p>
                   <p className="mt-2 text-lg font-semibold text-warning">{run.run.final_answer}</p>
                 </div>
@@ -113,7 +113,7 @@ export default function JudgeDemoPage() {
                         ? "border-orange bg-orange-tint shadow-[0_0_0_3px_rgba(255,79,0,.12)]"
                         : step.step_key === culprit.step_key
                           ? "border-caution bg-caution-tint"
-                          : "border-rule bg-white hover:border-graphite/40 hover:shadow-sm"
+                          : "border-rule bg-panel hover:border-graphite/40 hover:shadow-sm"
                     }`}
                   >
                     <span className="block truncate text-xs font-medium">{step.name}</span>
@@ -154,7 +154,7 @@ export default function JudgeDemoPage() {
           <article className="group relative overflow-hidden rounded-panel border border-rule bg-panel p-6 transition-colors hover:border-advisory/30">
             <span className="absolute left-0 top-0 h-full w-[3px] rounded-r bg-advisory" />
             <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-control bg-[#e0f2f7] text-advisory"><Cpu className="h-4.5 w-4.5" /></span>
+              <span className="grid h-9 w-9 place-items-center rounded-control bg-advisory-tint text-advisory"><Cpu className="h-4.5 w-4.5" /></span>
               <p className="heading text-lg">2. Minimal repair</p>
             </div>
             <p className="mt-4 text-sm font-medium">{fix.strategy}</p>

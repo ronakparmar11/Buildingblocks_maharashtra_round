@@ -59,7 +59,7 @@ export default function FleetPage() {
                   </span>
                   <span className="h-5 bg-rule-soft">
                     <span
-                      className={`block h-full ${index === 0 ? "bg-orange" : "bg-ink"}`}
+                      className={`block h-full ${index === 0 ? "bg-orange" : "bg-graphite"}`}
                       style={{ width: `${(row.pct / top.pct) * 100}%` }}
                     />
                   </span>
@@ -84,7 +84,7 @@ export default function FleetPage() {
                 <span className="truncate">{row.text}</span>
                 <span className="h-5 bg-rule-soft">
                   <span
-                    className={`block h-full ${index === 0 ? "bg-orange" : "bg-ink"}`}
+                    className={`block h-full ${index === 0 ? "bg-orange" : "bg-graphite"}`}
                     style={{
                       width: `${(row.count / data.by_reason[0].count) * 100}%`,
                     }}

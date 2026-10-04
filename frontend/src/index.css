@@ -3,12 +3,78 @@
 @tailwind utilities;
 
 :root {
-  color: #14202b;
-  background: #eef1f2;
+  --color-paper: #EEF1F2;
+  --color-panel: #FBFCFC;
+  --color-ink: #14202B;
+  --color-graphite: #5B6873;
+  --color-rule: #C9D2D8;
+  --color-rule-soft: #DFE5E8;
+  --color-orange: #FF4F00;
+  --color-orange-tint: #FFE4D6;
+  --color-warning: #C8223A;
+  --color-caution: #D48A00;
+  --color-caution-tint: #FBEFD5;
+  --color-normal: #1E8A4C;
+  --color-normal-tint: #DDF1E5;
+  --color-advisory: #0B6E8A;
+  --color-advisory-tint: #e0f2f7;
+  --color-ghost: #AEB8BF;
+  --color-warning-tint: #fdf2f4;
+  --color-warning-tint-deep: #F9DEE2;
+  --color-ink-btn: #14202B;
+  --color-ink-btn-hover: #1e2e3d;
+  --color-ink-btn-active: #0a1520;
+
+  --chart-orange: #FF4F00;
+  --chart-ink: #14202B;
+  --chart-graphite: #5B6873;
+  --chart-rule: #DFE5E8;
+  --chart-rule-hard: #C9D2D8;
+  --chart-advisory: #0B6E8A;
+  --chart-caution: #D48A00;
+
+  color-scheme: light dark;
+  color: var(--color-ink);
+  background: var(--color-paper);
   font-family: Archivo, "Segoe UI", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   font-variant-numeric: tabular-nums;
+}
+
+:root.dark {
+  --color-paper: #0d1117;
+  --color-panel: #161b22;
+  --color-ink: #e6edf3;
+  --color-graphite: #8b949e;
+  --color-rule: #30363d;
+  --color-rule-soft: #21262d;
+  --color-orange: #FF6A33;
+  --color-orange-tint: #3d1e0f;
+  --color-warning: #f85149;
+  --color-caution: #d29922;
+  --color-caution-tint: #2d2200;
+  --color-normal: #3fb950;
+  --color-normal-tint: #0f2d16;
+  --color-advisory: #58a6ff;
+  --color-advisory-tint: #0d2d42;
+  --color-ghost: #484f58;
+  --color-warning-tint: #2d1519;
+  --color-warning-tint-deep: #3d1a1f;
+  --color-ink-btn: #30363d;
+  --color-ink-btn-hover: #3d444d;
+  --color-ink-btn-active: #24292f;
+
+  --chart-orange: #FF6A33;
+  --chart-ink: #e6edf3;
+  --chart-graphite: #8b949e;
+  --chart-rule: #21262d;
+  --chart-rule-hard: #30363d;
+  --chart-advisory: #58a6ff;
+  --chart-caution: #d29922;
+  --shadow-popover: rgba(0,0,0,0.4);
+
+  color-scheme: dark;
 }
 
 body {
@@ -17,11 +83,15 @@ body {
   min-height: 100vh;
   font-size: 14px;
   line-height: 20px;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
 }
 
-button, input, select, textarea { font: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { background-color: var(--color-panel); }
+input::placeholder, textarea::placeholder { color: var(--color-graphite); opacity: 1; }
 .heading { font-weight: 600; font-variation-settings: "wdth" 85; }
-:focus-visible { outline: 2px solid #0b6e8a; outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--color-advisory); outline-offset: 2px; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }

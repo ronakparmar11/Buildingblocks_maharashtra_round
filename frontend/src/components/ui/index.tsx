@@ -32,7 +32,7 @@ export function Button({
 }) {
   const variants = {
     orange: "bg-orange text-white border-orange hover:bg-[#e54600] active:bg-[#cc3f00]",
-    ink: "bg-ink text-white border-ink hover:bg-[#1e2e3d] active:bg-[#0a1520]",
+    ink: "bg-ink-btn text-white border-ink-btn hover:bg-ink-btn-hover active:bg-ink-btn-active",
     secondary: "bg-panel text-ink border-rule hover:bg-rule-soft active:bg-rule",
     quiet: "border-transparent bg-transparent text-advisory hover:bg-rule-soft/60 active:bg-rule-soft",
   };
@@ -57,7 +57,7 @@ export function OutcomeChip({ outcome }: { outcome: string }) {
     outcome === "pass"
       ? "bg-normal-tint text-normal"
       : outcome === "fail"
-        ? "bg-[#F9DEE2] text-warning"
+        ? "bg-warning-tint-deep text-warning"
         : "bg-rule-soft text-graphite";
   return (
     <span
@@ -201,7 +201,7 @@ export function Drawer({
   }, [open]);
   if (!open) return null;
   return (
-    <div className={`fixed inset-0 z-50 transition-colors duration-150 ${visible ? "bg-ink/20" : "bg-ink/0"}`} onMouseDown={onClose}>
+    <div className={`fixed inset-0 z-50 transition-colors duration-150 ${visible ? "bg-black/20" : "bg-black/0"}`} onMouseDown={onClose}>
       <aside
         ref={panel}
         role="dialog"
@@ -277,7 +277,7 @@ export function Tooltip({
     <span className="relative inline-flex" onMouseEnter={enter} onMouseLeave={leave} onFocus={enter} onBlur={leave} aria-describedby={show ? id : undefined}>
       {children}
       {show && (
-        <span id={id} role="tooltip" className="absolute bottom-full left-1/2 z-40 mb-2 -translate-x-1/2 whitespace-nowrap rounded-control bg-ink px-2.5 py-1 text-xs text-white shadow-popover">
+        <span id={id} role="tooltip" className="absolute bottom-full left-1/2 z-40 mb-2 -translate-x-1/2 whitespace-nowrap rounded-control bg-ink-btn px-2.5 py-1 text-xs text-white shadow-popover">
           {label}
         </span>
       )}
@@ -296,7 +296,7 @@ export function Toast({
     return () => clearTimeout(timer);
   }, [onClose]);
   return (
-    <div className="fixed bottom-6 right-6 z-50 rounded-control bg-ink px-4 py-3 text-white shadow-popover">
+    <div className="fixed bottom-6 right-6 z-50 rounded-control bg-ink-btn px-4 py-3 text-white shadow-popover">
       {message}
     </div>
   );
@@ -379,7 +379,7 @@ export function WordDiff({ parts }: { parts: string[] }) {
             part[0] === "+"
               ? "bg-normal-tint text-normal"
               : part[0] === "-"
-                ? "bg-[#F9DEE2] text-warning line-through"
+                ? "bg-warning-tint-deep text-warning line-through"
                 : ""
           }
         >
@@ -599,7 +599,7 @@ export function SegmentedControl({
         <button
           key={option}
           onClick={() => onChange(option)}
-          className={`rounded-[4px] px-3 py-1.5 text-xs transition-colors ${value === option ? "bg-ink text-white" : "text-graphite hover:text-ink"}`}
+          className={`rounded-[4px] px-3 py-1.5 text-xs transition-colors ${value === option ? "bg-ink-btn text-white" : "text-graphite hover:text-ink"}`}
         >
           {option}
         </button>

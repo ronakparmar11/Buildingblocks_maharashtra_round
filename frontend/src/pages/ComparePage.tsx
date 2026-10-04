@@ -100,7 +100,7 @@ export default function ComparePage() {
             <span>{data.a.n_steps} steps</span>
           </div>
         </div>
-        <div className="h-px bg-ink max-[640px]:my-2" />
+        <div className="h-px bg-rule max-[640px]:my-2" />
         <div className="rounded-panel border border-rule bg-panel p-5">
           <p className="break-all font-mono text-xs text-graphite">
             Replay {data.b.run_id}

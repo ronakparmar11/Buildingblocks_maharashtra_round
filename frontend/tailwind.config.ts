@@ -1,15 +1,19 @@
 import type { Config } from "tailwindcss";
 
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        paper: "#EEF1F2", panel: "#FBFCFC", ink: "#14202B",
-        graphite: "#5B6873", rule: "#C9D2D8", "rule-soft": "#DFE5E8",
-        orange: "#FF4F00", "orange-tint": "#FFE4D6", warning: "#C8223A",
-        caution: "#D48A00", "caution-tint": "#FBEFD5", normal: "#1E8A4C",
-        "normal-tint": "#DDF1E5", advisory: "#0B6E8A", ghost: "#AEB8BF",
+        paper: "var(--color-paper)", panel: "var(--color-panel)", ink: "var(--color-ink)",
+        graphite: "var(--color-graphite)", rule: "var(--color-rule)", "rule-soft": "var(--color-rule-soft)",
+        orange: "var(--color-orange)", "orange-tint": "var(--color-orange-tint)", warning: "var(--color-warning)",
+        caution: "var(--color-caution)", "caution-tint": "var(--color-caution-tint)", normal: "var(--color-normal)",
+        "normal-tint": "var(--color-normal-tint)", advisory: "var(--color-advisory)",
+        "advisory-tint": "var(--color-advisory-tint)", ghost: "var(--color-ghost)",
+        "warning-tint": "var(--color-warning-tint)", "warning-tint-deep": "var(--color-warning-tint-deep)",
+        "ink-btn": "var(--color-ink-btn)", "ink-btn-hover": "var(--color-ink-btn-hover)", "ink-btn-active": "var(--color-ink-btn-active)",
       },
       fontFamily: {
         sans: ["Archivo", "Segoe UI", "system-ui", "sans-serif"],
@@ -21,7 +25,7 @@ export default {
         "3xl": ["39px", "44px"],
       },
       borderRadius: { chip: "999px", control: "6px", panel: "10px", node: "8px" },
-      boxShadow: { popover: "0 8px 24px rgba(20,32,43,0.14)" },
+      boxShadow: { popover: "0 8px 24px var(--shadow-popover, rgba(20,32,43,0.14))" },
     },
   },
   plugins: [],

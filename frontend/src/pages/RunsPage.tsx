@@ -127,9 +127,12 @@ export default function RunsPage() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
-      <div className="mb-5 flex items-end justify-between">
-        <h1 className="heading text-xl capitalize">{t("runs")}</h1>
-        <span className="text-sm text-graphite">
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="heading text-2xl capitalize">{t("runs")}</h1>
+          <p className="mt-1 text-sm text-graphite">Browse and filter all recorded conversations.</p>
+        </div>
+        <span className="rounded-chip bg-rule-soft px-2.5 py-1 text-xs text-graphite">
           {total.toLocaleString()} {t("runs")}
         </span>
       </div>

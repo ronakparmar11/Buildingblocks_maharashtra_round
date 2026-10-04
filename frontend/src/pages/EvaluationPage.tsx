@@ -164,11 +164,13 @@ export default function EvaluationPage() {
   }));
   return (
     <div className="mx-auto max-w-[1440px] px-6 py-8">
-      <h1 className="heading text-xl">Evaluation</h1>
-      <p className="mt-1 text-md text-graphite">
-        Tested on {data.test_questions} questions the model never trained on.
-      </p>
-      <div className="mt-6">
+      <div className="mb-6">
+        <h1 className="heading text-2xl">Evaluation</h1>
+        <p className="mt-1 text-md text-graphite">
+          Tested on {data.test_questions} questions the model never trained on.
+        </p>
+      </div>
+      <div>
         <KpiRow
           items={[
             {
@@ -230,7 +232,7 @@ export default function EvaluationPage() {
                   width={125}
                   tick={{ fontSize: 12, fill: CHART.graphite }}
                 />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: CHART.panel, border: `1px solid ${CHART.rule}`, borderRadius: 8, color: CHART.ink }} />
                 <Legend />
                 <Bar
                   dataKey="top1"
@@ -328,7 +330,7 @@ export default function EvaluationPage() {
                   width={125}
                   tick={{ fontSize: 12 }}
                 />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: CHART.panel, border: `1px solid ${CHART.rule}`, borderRadius: 8, color: CHART.ink }} />
                 <Bar dataKey="value" isAnimationActive={false}>
                   <LabelList
                     dataKey="value"
@@ -384,7 +386,7 @@ export default function EvaluationPage() {
           </p>
         </section>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-rule bg-panel p-5 text-md">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-panel border border-rule bg-panel p-5 text-md">
         {artifact?.repair.status === "not_run" ? (
           <p>Repair evaluation has not been run yet.</p>
         ) : (
@@ -400,7 +402,7 @@ export default function EvaluationPage() {
           See fix attempts
         </Link>
       </div>
-      <details className="border-b border-rule bg-panel p-5">
+      <details className="mt-4 rounded-panel border border-rule bg-panel p-5">
         <summary className="heading cursor-pointer text-lg">
           How we tested
         </summary>

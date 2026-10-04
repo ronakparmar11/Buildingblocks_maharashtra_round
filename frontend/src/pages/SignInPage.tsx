@@ -22,7 +22,7 @@ export default function SignInPage({ onSignedIn }: { onSignedIn: (session: Sessi
     try {
       onSignedIn(await apiPost<SessionResponse>("/auth/login", { email, password }));
     } catch (cause) {
-      setError(cause instanceof ApiError && cause.status === 401 ? "The demo email or password is incorrect." : "Sign in is unavailable. Check that the API is running.");
+      setError(cause instanceof ApiError && cause.status === 401 ? "Invalid email or password." : "Sign in is unavailable. Check that the API is running.");
     } finally {
       setSubmitting(false);
     }
@@ -36,7 +36,7 @@ export default function SignInPage({ onSignedIn }: { onSignedIn: (session: Sessi
           <Link to="/" className="relative flex items-center gap-3" aria-label="Back to Black Box home">
             <LogoMark className="h-8 w-8" />
             <span className="heading text-lg">Black Box</span>
-            <span className="ml-auto rounded-chip border border-white/20 px-3 py-1 text-xs text-white/70">Judge build</span>
+            <span className="ml-auto rounded-chip border border-white/20 px-3 py-1 text-xs text-white/70">AI failure intelligence</span>
           </Link>
 
           <div className="relative my-auto max-w-3xl py-12 lg:py-20">
@@ -64,20 +64,20 @@ export default function SignInPage({ onSignedIn }: { onSignedIn: (session: Sessi
             <div className="mb-9 flex h-12 w-12 items-center justify-center rounded-control bg-orange-tint text-orange">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <p className="font-mono text-xs uppercase text-advisory">Prepared demonstration</p>
-            <h2 className="heading mt-3 text-2xl">Enter the investigation room</h2>
-            <p className="mt-3 text-sm text-graphite">The judge account is prefilled. Sign in to open the saved, quota-free failure investigation.</p>
+            <p className="font-mono text-xs uppercase text-advisory">Welcome back</p>
+            <h2 className="heading mt-3 text-2xl">Sign in to Black Box</h2>
+            <p className="mt-3 text-sm text-graphite">Monitor, diagnose, and repair AI failures with evidence-based investigations.</p>
 
             <label className="mt-8 block text-sm font-medium" htmlFor="email">Email</label>
             <div className="relative mt-2">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-graphite" />
-              <input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} className="h-10 w-full rounded-control border border-rule bg-white pl-10 pr-3 text-sm" />
+              <input id="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} className="h-10 w-full rounded-control border border-rule bg-panel pl-10 pr-3 text-sm" />
             </div>
 
             <label className="mt-5 block text-sm font-medium" htmlFor="password">Password</label>
             <div className="relative mt-2">
               <LockKeyhole className="absolute left-3 top-3 h-4 w-4 text-graphite" />
-              <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-10 w-full rounded-control border border-rule bg-white pl-10 pr-10 text-sm" />
+              <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-10 w-full rounded-control border border-rule bg-panel pl-10 pr-10 text-sm" />
               <button type="button" title={showPassword ? "Hide password" : "Show password"} aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)} className="absolute right-2 top-2 grid h-6 w-6 place-items-center text-graphite">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -85,10 +85,9 @@ export default function SignInPage({ onSignedIn }: { onSignedIn: (session: Sessi
 
             {error && <p role="alert" className="mt-4 border-l-2 border-warning pl-3 text-sm text-warning">{error}</p>}
             <button type="submit" disabled={submitting} className="mt-7 inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-orange px-5 text-sm font-medium text-white disabled:opacity-60">
-              {submitting ? "Opening demo..." : "Open judge demo"}
+              {submitting ? "Signing in..." : "Sign in"}
               {!submitting && <ArrowRight className="h-4 w-4" />}
             </button>
-            <p className="mt-4 text-center text-xs text-graphite">Recorded evidence only. No live LLM quota is used.</p>
           </form>
         </section>
       </div>

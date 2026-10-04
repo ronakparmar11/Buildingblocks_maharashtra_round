@@ -132,7 +132,8 @@ export default function LiveLabPage() {
     return <EmptyState title="No prepared demo questions are available." />;
   return (
     <div className="mx-auto max-w-[1500px] px-6 py-8 text-md">
-      <h1 className="heading text-xl">Live lab</h1>
+      <h1 className="heading text-2xl">Live lab</h1>
+      <p className="mt-1 text-sm text-graphite">Run a conversation, inject a failure, and watch the diagnosis in real time.</p>
       {workspace === "nimbu" && (
         <div className="mt-5">
           <SegmentedControl options={["One conversation", "Simulate traffic"]} value={mode} onChange={setMode} />

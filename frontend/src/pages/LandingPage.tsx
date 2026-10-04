@@ -141,7 +141,7 @@ export default function LandingPage() {
                 to="/signin"
                 className="inline-flex h-12 items-center gap-2 rounded-control bg-orange px-6 text-sm font-medium text-white shadow-[0_0_24px_rgba(255,79,0,.25)] transition-all hover:bg-[#e54600] hover:shadow-[0_0_32px_rgba(255,79,0,.35)]"
               >
-                <Play className="h-4 w-4" /> Open the judge demo
+                <Play className="h-4 w-4" /> Get started
               </Link>
               <a
                 href="#how-it-works"
@@ -206,7 +206,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Product screenshot ─── */}
-      <section id="product" className="bg-ink px-5 py-24 sm:px-8 sm:py-32">
+      <section id="product" className="bg-[#0d1117] px-5 py-24 sm:px-8 sm:py-32">
         <div className="mx-auto max-w-[1440px]">
           <div className="grid items-end gap-8 lg:grid-cols-[1fr_0.8fr]">
             <div>
@@ -230,7 +230,7 @@ export default function LandingPage() {
               <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
               <span className="h-2.5 w-2.5 rounded-full bg-caution/70" />
               <span className="h-2.5 w-2.5 rounded-full bg-normal/70" />
-              <span className="ml-4 font-mono text-[11px] text-white/35">Saved Golden Demo · no provider calls</span>
+              <span className="ml-4 font-mono text-[11px] text-white/35">Black Box · AI failure intelligence</span>
             </div>
             <img
               src="/golden-demo-preview.png"
@@ -256,7 +256,7 @@ export default function LandingPage() {
         </Suspense>
         <div className="relative mx-auto max-w-[1440px]">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="font-mono text-xs uppercase text-orange">Prepared judge flow</p>
+            <p className="font-mono text-xs uppercase text-orange">See it in action</p>
             <h2 className="heading mt-5 text-3xl leading-[1.2] text-white sm:text-[40px] [text-shadow:0_2px_16px_rgba(0,0,0,.5)]">
               Watch one failure become one verified fix.
             </h2>
@@ -274,7 +274,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-white/10 bg-ink px-5 py-7 sm:px-8">
+      <footer className="border-t border-white/10 bg-[#0d1117] px-5 py-7 sm:px-8">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between">
           <span className="flex items-center gap-2">
             <LogoMark className="h-5 w-5" />
