@@ -14,6 +14,7 @@ import {
 import { lazy, useState, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "../components/Logo";
+import architectureUrl from "../../../.archify/architecture-blackbox-20261004-154009/blackbox-architecture.html?url";
 
 const DitherWave = lazy(() => import("../components/DitherWave"));
 const RisingLines = lazy(() => import("../components/RisingLines"));
@@ -101,6 +102,7 @@ export default function LandingPage() {
           </Link>
           <nav className="ml-auto hidden items-center gap-6 text-xs text-white/60 sm:flex">
             <a href="#how-it-works" className="transition-colors hover:text-white">How it works</a>
+            <a href="#architecture" className="transition-colors hover:text-white">Architecture</a>
             <a href="#product" className="transition-colors hover:text-white">Product</a>
             <a href="#demo" className="transition-colors hover:text-white">Demo</a>
           </nav>
@@ -201,6 +203,31 @@ export default function LandingPage() {
             {capabilities.map(({ icon: Icon, number, title, text }) => (
               <FlipCard key={title} icon={Icon} number={number} title={title} text={text} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Architecture ─── */}
+      <section id="architecture" className="bg-[#0d1117] px-5 py-24 sm:px-8 sm:py-32">
+        <div className="mx-auto max-w-[1440px]">
+          <p className="font-mono text-xs uppercase text-advisory">System architecture</p>
+          <h2 className="heading mt-5 max-w-3xl text-3xl leading-[1.2] text-white sm:text-[40px]">
+            From captured run to verified repair.
+          </h2>
+          <div
+            className="mt-14 overflow-hidden rounded-panel border border-white/10 bg-[#0b1220] shadow-[0_16px_48px_rgba(0,0,0,.4)]"
+            style={{ overflowX: "auto" }}
+          >
+            <div style={{ width: "max(100%, 960px)", aspectRatio: "1550 / 992" }}>
+              <iframe
+                src={`${architectureUrl}?embed=1&theme=dark`}
+                title="Black Box system architecture"
+                className="block border-0"
+                style={{ width: "100%", height: "100%" }}
+                loading="lazy"
+                tabIndex={-1}
+              />
+            </div>
           </div>
         </div>
       </section>
