@@ -277,6 +277,19 @@ class LiveRunResponse(APIModel):
     run_id: str
 
 
+class VoiceAnswerRequest(APIModel):
+    transcript: str = Field(min_length=1, max_length=1000)
+
+
+class VoiceAnswerResponse(APIModel):
+    answer: str
+    model: str
+    latency_ms: int
+    tokens_in: int
+    tokens_out: int
+    sources: list[str]
+
+
 class HealthResponse(APIModel):
     status: Literal["ok"]
     demo_mode: bool

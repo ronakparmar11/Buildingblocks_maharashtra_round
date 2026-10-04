@@ -127,7 +127,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
             {links.map(([to, label]) => (
               <NavLink
                 key={to}
-                to={to}
+                to={`${to}?ws=${workspace}`}
                 end={to === "/"}
                 className={({ isActive }) =>
                   `flex h-full items-center border-b-2 pt-0.5 text-sm ${isActive ? "border-ink text-ink" : "border-transparent text-graphite"}`
@@ -154,7 +154,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
                   {links.map(([to, label]) => (
                     <NavLink
                       key={to}
-                      to={to}
+                      to={`${to}?ws=${workspace}`}
                       end={to === "/"}
                       className={({ isActive }) =>
                         `rounded-control px-3 py-2 text-sm font-medium ${isActive ? "bg-rule-soft text-ink" : "text-graphite hover:bg-rule-soft/60"}`
