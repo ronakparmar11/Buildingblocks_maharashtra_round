@@ -6,7 +6,6 @@ from typing import Any
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-import shap
 
 from blackbox.features.reference import ReferenceStats
 from blackbox.store.models import Step
@@ -147,6 +146,8 @@ def _evidence(
 def _shap_values(
     model: lgb.Booster | lgb.LGBMRanker, features: pd.DataFrame
 ) -> np.ndarray:
+    import shap
+
     booster = model.booster_ if isinstance(model, lgb.LGBMRanker) else model
     values = shap.TreeExplainer(booster).shap_values(features)
     if isinstance(values, list):

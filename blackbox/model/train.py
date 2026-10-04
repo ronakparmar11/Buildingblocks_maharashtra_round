@@ -9,8 +9,6 @@ from typing import Any
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import GroupKFold
-
 from blackbox.config import Settings, get_settings
 from blackbox.features.extract import build_dataset
 
@@ -139,6 +137,8 @@ def cross_validate(
     unique_tasks = len(set(run_tasks))
     if unique_tasks < 2:
         return {"top_1": 0.0, "mrr": 0.0, "folds": 0.0}
+    from sklearn.model_selection import GroupKFold
+
     splitter = GroupKFold(n_splits=min(5, unique_tasks))
     fold_metrics: list[dict[str, float]] = []
     run_numbers = np.arange(len(groups))

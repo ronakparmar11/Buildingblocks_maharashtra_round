@@ -215,7 +215,7 @@ export default function Inspector({
                       type="checkbox"
                       checked={raw}
                       onChange={(event) => setRaw(event.target.checked)}
-                      className="mr-2"
+                      className="mr-2 accent-orange"
                     />
                     Raw JSON
                   </label>

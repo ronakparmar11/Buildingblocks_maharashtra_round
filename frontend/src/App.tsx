@@ -12,6 +12,7 @@ import {
 import { useHealth } from "./api/hooks";
 import { apiGet, apiPost } from "./api/client";
 import type { SessionResponse } from "./api/types";
+import { LogoMark } from "./components/Logo";
 import { Popover } from "./components/ui";
 import {
   useWorkspace,
@@ -83,7 +84,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
       <header className="sticky top-0 z-40 h-14 border-b border-rule bg-panel">
         <div className="mx-auto flex h-full max-w-[1440px] items-center gap-3 px-3 sm:px-6">
           <NavLink to="/" className="flex items-center gap-2">
-            <span className="h-3.5 w-3.5 bg-orange" />
+            <LogoMark className="h-7 w-7" />
             <span className="heading hidden text-[18px] sm:inline">
               Black Box
             </span>
@@ -167,11 +168,11 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
             <button
               aria-label="Keyboard shortcuts"
               onClick={() => setShortcuts(true)}
-              className="hidden sm:block"
+              className="hidden rounded-control transition-colors hover:bg-rule-soft focus-visible:ring-2 focus-visible:ring-advisory sm:block"
             >
               <Keyboard className="h-4 w-4 text-graphite" />
             </button>
-            <button title={`Sign out ${session.email}`} aria-label="Sign out" onClick={onSignedOut} className="grid h-8 w-8 place-items-center text-graphite"><LogOut className="h-4 w-4" /></button>
+            <button title={`Sign out ${session.email}`} aria-label="Sign out" onClick={onSignedOut} className="grid h-8 w-8 place-items-center rounded-control text-graphite transition-colors hover:bg-rule-soft focus-visible:ring-2 focus-visible:ring-advisory"><LogOut className="h-4 w-4" /></button>
           </div>
         </div>
       </header>
@@ -197,13 +198,13 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
       </main>
       {shortcuts && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-ink/20"
+          className="fixed inset-0 z-50 grid place-items-center bg-ink/20 animate-[fadeIn_150ms_ease-out]"
           onClick={() => setShortcuts(false)}
         >
           <div
             role="dialog"
             aria-label="Keyboard shortcuts"
-            className="w-80 rounded-panel border border-rule bg-panel p-5 shadow-popover"
+            className="w-80 rounded-panel border border-rule bg-panel p-5 shadow-popover animate-[scaleIn_150ms_ease-out]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex justify-between">
@@ -239,7 +240,7 @@ function App() {
   useEffect(() => {
     apiGet<SessionResponse>("/auth/session").then(setSession).catch(() => setSession(null));
   }, []);
-  if (session === undefined) return <div className="grid min-h-screen place-items-center bg-ink text-sm text-white/70">Opening Black Box...</div>;
+  if (session === undefined) return <div className="grid min-h-screen place-items-center bg-ink text-sm text-white/70"><div className="flex flex-col items-center gap-4"><LogoMark className="h-12 w-12 animate-pulse" /><span>Opening Black Box...</span></div></div>;
   if (session === null) return <Routes><Route path="/" element={<LandingPage />} /><Route path="/signin" element={<SignInPage onSignedIn={setSession} />} /><Route path="*" element={<Navigate replace to="/" />} /></Routes>;
   const signOut = async () => {
     await apiPost<void>("/auth/logout");

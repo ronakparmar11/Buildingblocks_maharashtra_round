@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -30,10 +31,10 @@ export function Button({
   loading?: boolean;
 }) {
   const variants = {
-    orange: "bg-orange text-white border-orange",
-    ink: "bg-ink text-white border-ink",
-    secondary: "bg-panel text-ink border-rule",
-    quiet: "border-transparent bg-transparent text-advisory",
+    orange: "bg-orange text-white border-orange hover:bg-[#e54600] active:bg-[#cc3f00]",
+    ink: "bg-ink text-white border-ink hover:bg-[#1e2e3d] active:bg-[#0a1520]",
+    secondary: "bg-panel text-ink border-rule hover:bg-rule-soft active:bg-rule",
+    quiet: "border-transparent bg-transparent text-advisory hover:bg-rule-soft/60 active:bg-rule-soft",
   };
   const sizes = {
     sm: "h-8 px-3 text-xs",
@@ -42,7 +43,7 @@ export function Button({
   };
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-control border font-medium disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-control border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={loading || props.disabled}
       {...props}
     >
@@ -87,7 +88,7 @@ export function StepKey({
   value: string;
   copy?: boolean;
 }) {
-  const className = "inline-block max-w-full truncate rounded-chip bg-rule-soft px-2 py-1 font-mono text-xs text-ink";
+  const className = `inline-block max-w-full truncate rounded-chip bg-rule-soft px-2 py-1 font-mono text-xs text-ink${copy ? " cursor-pointer transition-colors hover:bg-rule" : ""}`;
   if (!copy)
     return <span title={value} className={className}>{value}</span>;
   return (
@@ -140,7 +141,7 @@ export function Tabs({
         <button
           key={tab}
           onClick={() => onChange(tab)}
-          className={`px-3 py-2 text-sm ${active === tab ? "border-b-2 border-ink text-ink" : "text-graphite"}`}
+          className={`px-3 py-2 text-sm transition-colors ${active === tab ? "border-b-2 border-ink text-ink" : "text-graphite hover:text-ink"}`}
         >
           {tab}
         </button>
@@ -193,16 +194,21 @@ export function Drawer({
       returnFocus.current?.focus();
     };
   }, [open, onClose]);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => setVisible(true));
+    else setVisible(false);
+  }, [open]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-ink/20" onMouseDown={onClose}>
+    <div className={`fixed inset-0 z-50 transition-colors duration-150 ${visible ? "bg-ink/20" : "bg-ink/0"}`} onMouseDown={onClose}>
       <aside
         ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onMouseDown={(event) => event.stopPropagation()}
-        className="ml-auto h-full w-full max-w-[480px] overflow-auto border-l border-rule bg-panel p-6 shadow-popover"
+        className={`ml-auto h-full w-full max-w-[480px] overflow-auto border-l border-rule bg-panel p-6 shadow-popover transition-transform duration-200 ${visible ? "translate-x-0" : "translate-x-full"}`}
       >
         <div className="mb-6 flex items-center justify-between">
           <h2 className="heading text-lg">{title}</h2>
@@ -225,8 +231,24 @@ export function Popover({
   closeOnContentClick?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
   return (
-    <span className="relative inline-block">
+    <span ref={ref} className="relative inline-block">
       <span onClick={() => setOpen(!open)}>{trigger}</span>
       {open && (
         <span
@@ -239,13 +261,29 @@ export function Popover({
     </span>
   );
 }
-export const Tooltip = ({
+export function Tooltip({
   label,
   children,
 }: {
   label: string;
   children: ReactNode;
-}) => <span title={label}>{children}</span>;
+}) {
+  const [show, setShow] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const id = useId();
+  const enter = () => { timer.current = setTimeout(() => setShow(true), 300); };
+  const leave = () => { clearTimeout(timer.current); setShow(false); };
+  return (
+    <span className="relative inline-flex" onMouseEnter={enter} onMouseLeave={leave} onFocus={enter} onBlur={leave} aria-describedby={show ? id : undefined}>
+      {children}
+      {show && (
+        <span id={id} role="tooltip" className="absolute bottom-full left-1/2 z-40 mb-2 -translate-x-1/2 whitespace-nowrap rounded-control bg-ink px-2.5 py-1 text-xs text-white shadow-popover">
+          {label}
+        </span>
+      )}
+    </span>
+  );
+}
 export function Toast({
   message,
   onClose,
@@ -407,7 +445,7 @@ export function FilterPill({
   children?: ReactNode;
 }) {
   return (
-    <button className="inline-flex h-9 items-center gap-2 rounded-chip border border-rule bg-panel px-3 text-sm">
+    <button className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-chip border border-rule bg-panel px-3 text-sm transition-colors hover:border-advisory hover:text-ink">
       {label}
       {value && `: ${value}`}
       {children ??
@@ -425,6 +463,65 @@ export function FilterPill({
     </button>
   );
 }
+export function Select({
+  value,
+  onChange,
+  options,
+  placeholder = "Select…",
+  className: cls = "",
+  "aria-label": ariaLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  className?: string;
+  "aria-label"?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", outside);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const selected = options.find((o) => o.value === value);
+  return (
+    <div ref={ref} className={`relative inline-block ${cls}`}>
+      <button
+        type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={ariaLabel}
+        onClick={() => setOpen(!open)}
+        className={`flex h-9 w-full items-center gap-2 rounded-chip border px-3 text-sm transition-colors ${value ? "border-advisory bg-panel text-ink" : "border-rule bg-panel text-graphite"} hover:border-advisory`}
+      >
+        <span className="min-w-0 truncate">{selected?.label ?? placeholder}</span>
+        <ChevronDown className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <ul id={listId} role="listbox" className="absolute left-0 top-full z-40 mt-1 max-h-60 w-full min-w-[180px] overflow-auto rounded-panel border border-rule bg-panel py-1 shadow-popover">
+          {options.map((o) => (
+            <li
+              key={o.value}
+              role="option"
+              aria-selected={o.value === value}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className={`cursor-pointer px-3 py-2 text-sm transition-colors ${o.value === value ? "bg-rule-soft font-medium text-ink" : "text-graphite hover:bg-rule-soft/60 hover:text-ink"}`}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 export function Combobox({
   value,
   onChange,
@@ -436,24 +533,55 @@ export function Combobox({
   options: { value: string; label: string }[];
   placeholder?: string;
 }) {
-  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
+  const filtered = options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()));
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", outside);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const pick = useCallback((v: string) => { onChange(v); setOpen(false); setQuery(""); }, [onChange]);
+  const selected = options.find((o) => o.value === value);
   return (
-    <label htmlFor={id} className="relative block">
+    <div ref={ref} className="relative block">
       <Search className="absolute left-3 top-2.5 h-4 w-4 text-graphite" />
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full appearance-none rounded-control border border-rule bg-panel pl-9 pr-8"
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+      <input
+        ref={inputRef}
+        type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        placeholder={selected?.label ?? placeholder}
+        value={open ? query : selected?.label ?? ""}
+        onFocus={() => { setOpen(true); setQuery(""); }}
+        onChange={(e) => { setQuery(e.target.value); if (!open) setOpen(true); }}
+        className="h-10 w-full rounded-control border border-rule bg-panel pl-9 pr-8 text-sm transition-colors hover:border-advisory focus:border-advisory"
+      />
+      <ChevronDown className={`absolute right-3 top-3 h-4 w-4 text-graphite transition-transform ${open ? "rotate-180" : ""}`} />
+      {open && (
+        <ul id={listId} role="listbox" className="absolute left-0 top-full z-40 mt-1 max-h-60 w-full overflow-auto rounded-panel border border-rule bg-panel py-1 shadow-popover">
+          {filtered.length === 0 && <li className="px-3 py-2 text-sm text-graphite">No results</li>}
+          {filtered.map((o) => (
+            <li
+              key={o.value}
+              role="option"
+              aria-selected={o.value === value}
+              onClick={() => pick(o.value)}
+              className={`cursor-pointer px-3 py-2 text-sm transition-colors ${o.value === value ? "bg-rule-soft font-medium text-ink" : "text-graphite hover:bg-rule-soft/60 hover:text-ink"}`}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 export function SegmentedControl({
@@ -471,7 +599,7 @@ export function SegmentedControl({
         <button
           key={option}
           onClick={() => onChange(option)}
-          className={`rounded-[4px] px-3 py-1.5 text-xs ${value === option ? "bg-ink text-white" : "text-graphite"}`}
+          className={`rounded-[4px] px-3 py-1.5 text-xs transition-colors ${value === option ? "bg-ink text-white" : "text-graphite hover:text-ink"}`}
         >
           {option}
         </button>
@@ -484,14 +612,15 @@ export const KpiRow = ({
 }: {
   items: { value: string; label: string }[];
 }) => (
-  <div className="grid grid-cols-2 border-y border-rule bg-panel sm:grid-cols-5">
-    {items.map((item) => (
+  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-4">
+    {items.map((item, i) => (
       <div
         key={item.label}
-        className="border-b border-r border-rule p-4 even:border-r-0 last:col-span-2 last:border-b-0 last:border-r-0 sm:col-span-1 sm:border-b-0 sm:border-r sm:p-5 sm:even:border-r sm:last:col-span-1 sm:last:border-r-0"
+        className={`relative overflow-hidden rounded-panel border border-rule bg-panel p-4 sm:p-5 ${i === 0 ? "col-span-2 sm:col-span-1" : ""}`}
       >
-        <strong className="font-mono text-2xl">{item.value}</strong>
-        <p className="mt-1 max-w-36 text-sm text-graphite">{item.label}</p>
+        <span className="absolute left-0 top-0 h-full w-[3px] rounded-r bg-orange opacity-0 transition-opacity group-hover:opacity-100" style={{ opacity: i === 0 ? 1 : 0 }} />
+        <strong className="block font-mono text-2xl text-ink">{item.value}</strong>
+        <p className="mt-1.5 text-sm leading-snug text-graphite">{item.label}</p>
       </div>
     ))}
   </div>

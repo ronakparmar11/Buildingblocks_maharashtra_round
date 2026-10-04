@@ -1,4 +1,4 @@
-import { Check, Cpu, Play, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Cpu, Play, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "../api/client";
@@ -38,6 +38,7 @@ export default function JudgeDemoPage() {
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-paper">
+      {/* ─── Header ─── */}
       <header className="border-b border-rule bg-panel px-4 py-7 sm:px-6">
         <div className="mx-auto max-w-[1440px]">
           <div className="flex flex-wrap items-start justify-between gap-5">
@@ -49,7 +50,7 @@ export default function JudgeDemoPage() {
               <h1 className="heading mt-4 text-2xl sm:text-3xl">From a wrong answer to a verified one-step fix</h1>
               <p className="mt-3 max-w-3xl text-sm text-graphite">This investigation is saved with the product. It stays available even when external model quota or network access does not.</p>
             </div>
-            <button onClick={play} disabled={playing} className="inline-flex h-10 items-center gap-2 rounded-control bg-orange px-4 text-sm font-medium text-white disabled:opacity-60">
+            <button onClick={play} disabled={playing} className="inline-flex h-10 items-center gap-2 rounded-control bg-orange px-5 text-sm font-medium text-white shadow-[0_1px_3px_rgba(255,79,0,.3)] transition-all hover:bg-[#e54600] hover:shadow-[0_2px_8px_rgba(255,79,0,.35)] disabled:opacity-60 disabled:shadow-none">
               {playing ? <RotateCcw className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               {playing ? "Replaying trace" : "Replay the story"}
             </button>
@@ -58,34 +59,63 @@ export default function JudgeDemoPage() {
       </header>
 
       <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
-        <section className="grid border border-rule bg-panel lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="border-b border-rule p-5 lg:border-b-0 lg:border-r lg:p-7">
-            <p className="text-xs text-graphite">Customer question</p>
-            <h2 className="heading mt-2 max-w-3xl text-xl">{run.task.question}</h2>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="border-l-2 border-warning pl-4"><p className="text-xs text-graphite">AI answered</p><p className="mt-1 text-lg font-semibold text-warning">{run.run.final_answer}</p></div>
-              <div className="border-l-2 border-normal pl-4"><p className="text-xs text-graphite">Expected answer</p><p className="mt-1 text-lg font-semibold text-normal">{run.task.gold_answer}</p></div>
+        {/* ─── Question + answers ─── */}
+        <section className="rounded-panel border border-rule bg-panel">
+          <div className="grid lg:grid-cols-[1.3fr_0.7fr]">
+            <div className="border-b border-rule p-5 lg:border-b-0 lg:border-r lg:p-7">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">Customer question</p>
+              <h2 className="heading mt-3 max-w-3xl text-xl">{run.task.question}</h2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-node border border-warning/20 bg-[#fdf2f4] p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-warning/70">AI answered</p>
+                  <p className="mt-2 text-lg font-semibold text-warning">{run.run.final_answer}</p>
+                </div>
+                <div className="rounded-node border border-normal/20 bg-normal-tint p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-normal/70">Expected answer</p>
+                  <p className="mt-2 text-lg font-semibold text-normal">{run.task.gold_answer}</p>
+                </div>
+              </div>
             </div>
+            <dl className="grid grid-cols-2">
+              {[
+                { label: "Outcome", content: <OutcomeChip outcome={run.run.outcome} /> },
+                { label: "Trace", content: <span className="font-mono text-xl font-bold">{run.steps.length} <span className="text-sm font-normal text-graphite">steps</span></span> },
+                { label: "Culprit confidence", content: <span className="font-mono text-xl font-bold text-orange">{Math.round(culprit.score * 100)}%</span> },
+                { label: "Diagnosis time", content: <span className="font-mono text-xl font-bold">{diagnosis.latency_ms.toFixed(1)} <span className="text-sm font-normal text-graphite">ms</span></span> },
+              ].map(({ label, content }, i) => (
+                <div key={label} className={`flex flex-col justify-center p-5 ${i < 2 ? "border-b border-rule" : ""} ${i % 2 === 0 ? "border-r border-rule" : ""}`}>
+                  <dt className="font-mono text-[11px] uppercase tracking-wide text-graphite">{label}</dt>
+                  <dd className="mt-2">{content}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
-          <dl className="grid grid-cols-2 divide-x divide-y divide-rule">
-            <div className="p-5"><dt className="text-xs text-graphite">Outcome</dt><dd className="mt-2"><OutcomeChip outcome={run.run.outcome} /></dd></div>
-            <div className="p-5"><dt className="text-xs text-graphite">Trace</dt><dd className="mt-2 font-mono text-lg">{run.steps.length} steps</dd></div>
-            <div className="p-5"><dt className="text-xs text-graphite">Culprit confidence</dt><dd className="mt-2 font-mono text-lg">{Math.round(culprit.score * 100)}%</dd></div>
-            <div className="p-5"><dt className="text-xs text-graphite">Diagnosis time</dt><dd className="mt-2 font-mono text-lg">{diagnosis.latency_ms.toFixed(1)} ms</dd></div>
-          </dl>
         </section>
 
-        <section className="mt-6 border border-rule bg-panel">
+        {/* ─── Execution trace ─── */}
+        <section className="mt-6 rounded-panel border border-rule bg-panel">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-4">
-            <div><p className="heading text-lg">Recorded execution trace</p><p className="text-xs text-graphite">Select any step to inspect its captured output.</p></div>
-            <span className="font-mono text-xs text-graphite">{revealed}/{run.steps.length} visible</span>
+            <div>
+              <p className="heading text-lg">Recorded execution trace</p>
+              <p className="mt-0.5 text-xs text-graphite">Select any step to inspect its captured output.</p>
+            </div>
+            <span className="rounded-chip bg-rule-soft px-3 py-1 font-mono text-xs text-graphite">{revealed}/{run.steps.length} visible</span>
           </div>
           <div className="overflow-x-auto p-5">
             <div className="flex min-w-max items-center">
               {run.steps.map((step, index) => (
-                <div key={step.step_key} className={`flex items-center ${index >= revealed ? "opacity-15" : "opacity-100"}`}>
-                  {index > 0 && <span className="h-px w-5 bg-rule sm:w-8" />}
-                  <button onClick={() => setSelectedKey(step.step_key)} className={`w-28 rounded-node border px-3 py-3 text-left ${selected.step_key === step.step_key ? "border-orange bg-orange-tint" : step.step_key === culprit.step_key ? "border-caution bg-caution-tint" : "border-rule bg-white"}`}>
+                <div key={step.step_key} className={`flex items-center transition-opacity duration-200 ${index >= revealed ? "opacity-15" : "opacity-100"}`}>
+                  {index > 0 && <span className="flex items-center"><span className="h-px w-5 bg-rule-soft sm:w-8" /><ArrowRight className="h-3 w-3 text-rule" /><span className="h-px w-1 bg-rule-soft sm:w-2" /></span>}
+                  <button
+                    onClick={() => setSelectedKey(step.step_key)}
+                    className={`w-28 rounded-node border-2 px-3 py-3 text-left transition-all ${
+                      selected.step_key === step.step_key
+                        ? "border-orange bg-orange-tint shadow-[0_0_0_3px_rgba(255,79,0,.12)]"
+                        : step.step_key === culprit.step_key
+                          ? "border-caution bg-caution-tint"
+                          : "border-rule bg-white hover:border-graphite/40 hover:shadow-sm"
+                    }`}
+                  >
                     <span className="block truncate text-xs font-medium">{step.name}</span>
                     <span className="mt-1 block font-mono text-[10px] text-graphite">#{String(index + 1).padStart(2, "0")}</span>
                   </button>
@@ -94,22 +124,56 @@ export default function JudgeDemoPage() {
             </div>
           </div>
           <div className="grid border-t border-rule lg:grid-cols-[0.8fr_1.2fr]">
-            <div className="border-b border-rule p-5 lg:border-b-0 lg:border-r">
-              <p className="text-xs text-graphite">Selected step</p>
-              <div className="mt-2"><StepKey value={selected.step_key} /></div>
-              <p className="mt-4 text-xs text-graphite">Latency</p><p className="font-mono text-sm">{selected.latency_ms} ms</p>
+            <div className="border-b border-rule bg-paper/50 p-5 lg:border-b-0 lg:border-r">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">Selected step</p>
+              <div className="mt-2"><StepKey value={selected.step_key} copy /></div>
+              <div className="mt-4 flex items-baseline gap-2">
+                <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">Latency</p>
+                <p className="font-mono text-sm font-medium">{selected.latency_ms} ms</p>
+              </div>
             </div>
             <div className="min-w-0 p-5">
-              <p className="text-xs text-graphite">Captured output</p>
-              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-ink">{selected.output_text || JSON.stringify(selected.output, null, 2)}</pre>
+              <p className="font-mono text-[11px] uppercase tracking-wide text-graphite">Captured output</p>
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-node border border-rule bg-paper p-3 font-mono text-xs leading-5 text-ink">{selected.output_text || JSON.stringify(selected.output, null, 2)}</pre>
             </div>
           </div>
         </section>
 
-        <section className="mt-6 grid gap-px overflow-hidden border border-rule bg-rule lg:grid-cols-3">
-          <div className="bg-panel p-6"><Sparkles className="h-5 w-5 text-caution" /><p className="heading mt-4 text-lg">1. Cause isolated</p><div className="mt-3"><StepKey value={culprit.step_key} /></div><p className="mt-3 text-sm text-graphite">{culprit.reasons[0]?.text}</p><p className="mt-3 border-l-2 border-caution pl-3 font-mono text-xs">{culprit.reasons[0]?.evidence}</p></div>
-          <div className="bg-panel p-6"><Cpu className="h-5 w-5 text-advisory" /><p className="heading mt-4 text-lg">2. Minimal repair</p><p className="mt-3 text-sm font-medium">{fix.strategy}</p><p className="mt-3 text-sm text-graphite">Only the failed synthesis step ran again. The trusted upstream evidence was reused.</p><p className="mt-4 font-mono text-xs">{fix.n_reused} reused · {fix.n_executed} executed</p></div>
-          <div className="bg-panel p-6"><Check className="h-5 w-5 text-normal" /><p className="heading mt-4 text-lg">3. Fix verified</p><p className="mt-3 text-sm font-medium text-normal">Correct answer restored</p><p className="mt-3 text-sm text-graphite">The recorded repair passed while spending only {fix.tokens_total} tokens.</p><span className="mt-4 inline-flex rounded-chip bg-normal-tint px-2.5 py-1 text-xs font-medium text-normal">Verified pass</span></div>
+        {/* ─── 3-step summary ─── */}
+        <section className="mt-6 grid gap-4 lg:grid-cols-3">
+          <article className="group relative overflow-hidden rounded-panel border border-rule bg-panel p-6 transition-colors hover:border-caution/30">
+            <span className="absolute left-0 top-0 h-full w-[3px] rounded-r bg-caution" />
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-control bg-caution-tint text-caution"><Sparkles className="h-4.5 w-4.5" /></span>
+              <p className="heading text-lg">1. Cause isolated</p>
+            </div>
+            <div className="mt-4"><StepKey value={culprit.step_key} copy /></div>
+            <p className="mt-3 text-sm leading-relaxed text-graphite">{culprit.reasons[0]?.text}</p>
+            <p className="mt-3 rounded-node border border-caution/15 bg-caution-tint/50 px-3 py-2 font-mono text-xs leading-relaxed">{culprit.reasons[0]?.evidence}</p>
+          </article>
+          <article className="group relative overflow-hidden rounded-panel border border-rule bg-panel p-6 transition-colors hover:border-advisory/30">
+            <span className="absolute left-0 top-0 h-full w-[3px] rounded-r bg-advisory" />
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-control bg-[#e0f2f7] text-advisory"><Cpu className="h-4.5 w-4.5" /></span>
+              <p className="heading text-lg">2. Minimal repair</p>
+            </div>
+            <p className="mt-4 text-sm font-medium">{fix.strategy}</p>
+            <p className="mt-3 text-sm leading-relaxed text-graphite">Only the failed synthesis step ran again. The trusted upstream evidence was reused.</p>
+            <div className="mt-4 flex gap-3">
+              <span className="rounded-chip bg-rule-soft px-2.5 py-1 font-mono text-xs">{fix.n_reused} reused</span>
+              <span className="rounded-chip bg-rule-soft px-2.5 py-1 font-mono text-xs">{fix.n_executed} executed</span>
+            </div>
+          </article>
+          <article className="group relative overflow-hidden rounded-panel border border-rule bg-panel p-6 transition-colors hover:border-normal/30">
+            <span className="absolute left-0 top-0 h-full w-[3px] rounded-r bg-normal" />
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-control bg-normal-tint text-normal"><Check className="h-4.5 w-4.5" /></span>
+              <p className="heading text-lg">3. Fix verified</p>
+            </div>
+            <p className="mt-4 text-sm font-medium text-normal">Correct answer restored</p>
+            <p className="mt-3 text-sm leading-relaxed text-graphite">The recorded repair passed while spending only {fix.tokens_total} tokens.</p>
+            <span className="mt-4 inline-flex items-center gap-1.5 rounded-chip bg-normal-tint px-3 py-1.5 text-xs font-medium text-normal"><Check className="h-3 w-3" /> Verified pass</span>
+          </article>
         </section>
       </main>
     </div>

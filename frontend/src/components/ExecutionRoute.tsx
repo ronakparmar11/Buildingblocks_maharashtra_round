@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import type { DiagnosisItem, Edge, StepRecord } from "../api/types";
+import { CHART } from "../lib/chartColors";
 
 const icons = {
   plan: Map,
@@ -198,14 +199,14 @@ export default function ExecutionRoute({
         target: edge.target,
         type: "smoothstep",
         style: {
-          stroke: edge.target === top ? "#FF4F00" : "rgba(20,32,43,.55)",
+          stroke: edge.target === top ? CHART.orange : "rgba(20,32,43,.55)",
           strokeWidth: 1.5,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 14,
           height: 14,
-          color: edge.target === top ? "#FF4F00" : "#5B6873",
+          color: edge.target === top ? CHART.orange : CHART.graphite,
         },
       }));
     return { nodes: nextNodes, flowEdges: nextEdges };
@@ -228,7 +229,7 @@ export default function ExecutionRoute({
         onNodeClick={(_, node) => onSelect?.(node.id)}
         onPaneClick={() => onSelect?.(null)}
       >
-        {!compact && <><Background id="minor" variant={BackgroundVariant.Lines} gap={24} size={1} color="#DFE5E8"/><Background id="major" variant={BackgroundVariant.Lines} gap={120} size={1} color="#C9D2D8"/></>}
+        {!compact && <><Background id="minor" variant={BackgroundVariant.Lines} gap={24} size={1} color={CHART.rule}/><Background id="major" variant={BackgroundVariant.Lines} gap={120} size={1} color={CHART.ruleHard}/></>}
         {!compact && (
           <Controls showInteractive={false} position="bottom-left" />
         )}

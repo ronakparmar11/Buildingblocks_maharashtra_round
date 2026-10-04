@@ -9,6 +9,7 @@ import {
   OutcomeChip,
   RunTypeLabel,
   ScoreMeter,
+  Select,
   Skeleton,
   StepKey,
 } from "../components/ui";
@@ -153,19 +154,15 @@ export default function RunsPage() {
           )}
         </label>
         {Object.entries(options).map(([key, values]) => (
-          <select
+          <Select
             key={key}
-            aria-label={values[0][1]}
+            aria-label={values[0][1] as string}
             value={params.get(key) ?? ""}
-            onChange={(event) => setFilter(key, event.target.value)}
-            className={`h-9 max-w-48 rounded-chip border px-3 text-sm ${params.has(key) ? "border-advisory bg-panel text-ink" : "border-rule bg-panel text-graphite"}`}
-          >
-            {values.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setFilter(key, value)}
+            className="max-w-48"
+            placeholder={values[0][1] as string}
+            options={values.map(([value, label]) => ({ value: value as string, label: label as string }))}
+          />
         ))}
         {params.get("cause_name") && <span className="inline-flex h-9 items-center gap-2 rounded-chip border border-advisory bg-panel px-3 text-sm">Likely cause: {params.get("cause_name")}<button aria-label="Clear likely cause filter" onClick={() => setFilter("cause_name", "")}><X className="h-3 w-3"/></button></span>}
         {params.get("reason") && <span className="inline-flex h-9 items-center gap-2 rounded-chip border border-advisory bg-panel px-3 text-sm">Reason: {params.get("reason")}<button aria-label="Clear reason filter" onClick={() => setFilter("reason", "")}><X className="h-3 w-3"/></button></span>}

@@ -1,27 +1,35 @@
 import {
   ArrowRight,
   Check,
+  ChevronRight,
   Gauge,
   GitCompareArrows,
   Play,
   Radar,
+  Search,
   ShieldCheck,
   Sparkles,
+  Zap,
 } from "lucide-react";
+import { lazy, useState, Suspense } from "react";
 import { Link } from "react-router-dom";
+import { LogoMark } from "../components/Logo";
+
+const DitherWave = lazy(() => import("../components/DitherWave"));
+const RisingLines = lazy(() => import("../components/RisingLines"));
 
 const capabilities = [
   {
     icon: Radar,
     number: "01",
-    title: "Record the whole run",
-    text: "Capture prompts, retrievals, tool calls, model outputs, latency, tokens, and dependencies as one inspectable trace.",
+    title: "Record every step",
+    text: "Prompts, retrievals, tool calls, model outputs, latency, tokens and dependencies — captured as one inspectable trace.",
   },
   {
     icon: Sparkles,
     number: "02",
     title: "Find the responsible step",
-    text: "Rank likely causes with evidence, instead of asking teams to read logs and guess where the answer diverged.",
+    text: "A trained ranker surfaces the likely cause with evidence, instead of making teams read logs and guess.",
   },
   {
     icon: GitCompareArrows,
@@ -29,112 +37,187 @@ const capabilities = [
     title: "Replay only what changed",
     text: "Reuse trusted upstream work, rerun the smallest repair, and compare the result against the original failure.",
   },
+  {
+    icon: Zap,
+    number: "04",
+    title: "Verify automatically",
+    text: "Run the fix across every affected conversation and measure cost, accuracy and token savings before you deploy.",
+  },
 ];
+
+const stats = [
+  { value: "12", label: "steps recorded per run" },
+  { value: "94%", label: "culprit confidence" },
+  { value: "1", label: "step rerun to repair" },
+  { value: "<2ms", label: "diagnosis latency" },
+];
+
+function FlipCard({ icon: Icon, number, title, text }: { icon: typeof Radar; number: string; title: string; text: string }) {
+  const [flipped, setFlipped] = useState(false);
+  return (
+    <article
+      onClick={() => setFlipped((f) => !f)}
+      className="cursor-pointer [perspective:800px]"
+    >
+      <div
+        className={`relative h-full transition-transform duration-500 [transform-style:preserve-3d] ${flipped ? "[transform:rotateY(180deg)]" : ""}`}
+      >
+        {/* Front */}
+        <div className="rounded-panel border border-white/10 bg-white/[0.03] p-6 [backface-visibility:hidden]">
+          <div className="flex items-center justify-between">
+            <span className="grid h-10 w-10 place-items-center rounded-control bg-orange/10 text-orange">
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="font-mono text-xs text-white/25">{number}</span>
+          </div>
+          <h3 className="heading mt-5 text-lg text-white">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-white/50">{text}</p>
+        </div>
+        {/* Back */}
+        <div className="absolute inset-0 rounded-panel bg-orange p-6 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="flex items-center justify-between">
+            <span className="grid h-10 w-10 place-items-center rounded-control bg-indigo-600/20 text-indigo-200">
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="font-mono text-xs text-indigo-300">{number}</span>
+          </div>
+          <h3 className="heading mt-5 text-lg text-indigo-950">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-indigo-900">{text}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function LandingPage() {
   return (
-    <main className="bg-paper text-ink">
-      <header className="absolute inset-x-0 top-0 z-20 h-16 border-b border-white/20 text-white">
-        <div className="mx-auto flex h-full max-w-[1440px] items-center px-5 sm:px-8">
-          <Link to="/" className="flex items-center gap-3" aria-label="Black Box home">
-            <span className="h-4 w-4 bg-orange" />
-            <span className="heading text-lg">Black Box</span>
+    <main className="bg-ink text-white selection:bg-orange/30">
+      {/* ─── Nav ─── */}
+      <header className="fixed inset-x-0 top-0 z-30">
+        <div className="mx-auto mt-3 flex h-12 max-w-3xl items-center rounded-chip border border-white/10 bg-ink/60 px-5 backdrop-blur-xl sm:mx-8 md:mx-auto">
+          <Link to="/" className="flex items-center gap-2" aria-label="Black Box home">
+            <LogoMark className="h-6 w-6" />
+            <span className="heading text-sm">Black Box</span>
           </Link>
-          <nav className="ml-auto hidden items-center gap-7 text-sm text-white/75 sm:flex">
-            <a href="#how-it-works" className="hover:text-white">How it works</a>
-            <a href="#proof" className="hover:text-white">Product</a>
+          <nav className="ml-auto hidden items-center gap-6 text-xs text-white/60 sm:flex">
+            <a href="#how-it-works" className="transition-colors hover:text-white">How it works</a>
+            <a href="#product" className="transition-colors hover:text-white">Product</a>
+            <a href="#demo" className="transition-colors hover:text-white">Demo</a>
           </nav>
-          <Link to="/signin" className="ml-5 inline-flex h-9 items-center gap-2 rounded-control border border-white/30 px-4 text-sm font-medium text-white hover:bg-white/10">
-            Sign in <ArrowRight className="h-4 w-4" />
+          <Link
+            to="/signin"
+            className="ml-5 inline-flex h-7 items-center gap-1.5 rounded-chip bg-orange px-3.5 text-xs font-medium text-white transition-colors hover:bg-[#e54600]"
+          >
+            Sign in <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
       </header>
 
-      <section
-        className="relative flex min-h-[calc(100svh-48px)] items-end overflow-hidden bg-ink bg-cover bg-center pt-28 text-white"
-        style={{ backgroundImage: "url('/golden-demo-preview.png')" }}
-      >
-        <div className="absolute inset-0 bg-ink/90" />
-        <div className="absolute inset-y-0 right-0 hidden w-[42%] border-l border-white/10 bg-ink/35 lg:block" />
-        <div className="relative mx-auto grid w-full max-w-[1440px] gap-8 px-5 pb-10 sm:px-8 sm:pb-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(360px,0.55fr)] lg:items-end lg:gap-12 lg:pb-24">
-          <div className="max-w-4xl">
-            <p className="mb-6 flex items-center gap-3 font-mono text-xs uppercase text-orange">
-              <span className="h-px w-8 bg-orange" /> AI failure intelligence
+      {/* ─── Hero ─── */}
+      <section className="relative overflow-hidden pt-16">
+        <Suspense fallback={null}>
+          <DitherWave
+            className="absolute inset-0 h-full w-full opacity-60"
+            primaryColor="#FF4F00"
+            secondaryColor="#FF8C42"
+            tertiaryColor="#14202B"
+            speed={0.8}
+            intensity={1.2}
+            scale={7}
+          />
+        </Suspense>
+
+        <div className="relative mx-auto max-w-[1440px] px-5 pb-20 pt-28 sm:px-8 sm:pb-32 sm:pt-36">
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="heading text-[44px] leading-[1.1] sm:text-[64px] lg:text-[76px] [text-shadow:0_2px_24px_rgba(0,0,0,.5)]">
+              Know why your AI failed.{" "}
+              <span className="text-orange">Fix only what broke.</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl [text-shadow:0_1px_8px_rgba(0,0,0,.6)]">
+              Black Box records every decision behind a wrong answer, isolates the responsible step, and verifies the smallest possible repair without rerunning the entire agent.
             </p>
-            <h1 className="heading text-[52px] leading-[56px] sm:text-[72px] sm:leading-[76px]">Black Box</h1>
-            <p className="heading mt-4 max-w-3xl text-2xl leading-8 text-white sm:text-3xl sm:leading-10">
-              The flight recorder for AI agents.
-            </p>
-            <p className="mt-6 max-w-2xl text-md leading-7 text-white/70">
-              See every decision behind a wrong answer, isolate the step that caused it, and verify the smallest possible repair without rerunning the entire agent.
-            </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link to="/signin" className="inline-flex h-12 items-center gap-2 rounded-control bg-orange px-5 text-sm font-medium text-white">
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
+              <Link
+                to="/signin"
+                className="inline-flex h-12 items-center gap-2 rounded-control bg-orange px-6 text-sm font-medium text-white shadow-[0_0_24px_rgba(255,79,0,.25)] transition-all hover:bg-[#e54600] hover:shadow-[0_0_32px_rgba(255,79,0,.35)]"
+              >
                 <Play className="h-4 w-4" /> Open the judge demo
               </Link>
-              <a href="#how-it-works" className="inline-flex h-12 items-center gap-2 rounded-control border border-white/30 px-5 text-sm font-medium text-white">
-                See how it works <ArrowRight className="h-4 w-4" />
+              <a
+                href="#how-it-works"
+                className="inline-flex h-12 items-center gap-2 rounded-control border border-white/30 bg-ink/50 px-6 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:border-white/50 hover:bg-ink/70"
+              >
+                See how it works <ChevronRight className="h-4 w-4" />
               </a>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 border border-white/20 bg-ink/75 lg:grid-cols-1">
-            {[
-              ["12", "steps recorded"],
-              ["94%", "culprit confidence"],
-              ["1", "step rerun to repair"],
-            ].map(([value, label]) => (
-              <div key={label} className="border-r border-white/20 px-3 py-3 last:border-r-0 sm:px-5 sm:py-4 lg:border-b lg:border-r-0 lg:last:border-b-0">
-                <p className="font-mono text-2xl text-white">{value}</p>
-                <p className="mt-1 text-xs text-white/55">{label}</p>
+          {/* Stats row */}
+          <div className="mx-auto mt-20 grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-panel border border-white/10 bg-white/10 sm:grid-cols-4">
+            {stats.map(({ value, label }) => (
+              <div key={label} className="bg-ink/80 px-5 py-5 text-center backdrop-blur-md">
+                <p className="font-mono text-2xl font-bold text-white">{value}</p>
+                <p className="mt-1 text-xs text-white/50">{label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <div className="bg-orange px-5 py-4 text-white">
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3">
-          <p className="heading text-lg">A wrong answer is not one event. It is a chain of decisions.</p>
-          <span className="font-mono text-xs uppercase">Observe · Diagnose · Repair · Verify</span>
+      {/* ─── Marquee bar ─── */}
+      <div className="overflow-hidden border-y border-white/10 bg-orange py-4">
+        <div className="flex animate-[marquee_20s_linear_infinite] gap-12 whitespace-nowrap">
+          {[0, 1].map((copy) => (
+            <span key={copy} className="flex shrink-0 items-center gap-12" aria-hidden={copy === 1 || undefined}>
+              {["A wrong answer is not one event. It is a chain of decisions.", "Observe", "Diagnose", "Repair", "Verify"].map((text, i) => (
+                <span key={`${copy}-${i}`} className="flex items-center gap-12">
+                  <span className={i === 0 ? "heading text-lg text-white" : "font-mono text-xs uppercase tracking-widest text-white/80"}>{text}</span>
+                  <span className="text-white/30">|</span>
+                </span>
+              ))}
+            </span>
+          ))}
         </div>
       </div>
 
-      <section id="how-it-works" className="border-b border-rule bg-panel px-5 py-20 sm:px-8 sm:py-28">
+      {/* ─── How it works ─── */}
+      <section id="how-it-works" className="bg-[#0d1117] px-5 py-24 sm:px-8 sm:py-32">
         <div className="mx-auto max-w-[1440px]">
-          <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
+          <div className="grid gap-8 lg:grid-cols-[0.65fr_1.35fr]">
             <div>
-              <p className="font-mono text-xs uppercase text-advisory">From incident to evidence</p>
-              <h2 className="heading mt-4 max-w-md text-3xl leading-[44px]">Stop debugging AI systems from the final answer backward.</h2>
+              <p className="inline-flex items-center gap-2 font-mono text-xs uppercase text-advisory">
+                <Search className="h-3.5 w-3.5" /> From incident to evidence
+              </p>
+              <h2 className="heading mt-5 max-w-md text-3xl leading-[1.2] text-white sm:text-[40px]">
+                Stop debugging AI from the final answer backward.
+              </h2>
             </div>
-            <p className="max-w-2xl self-end text-lg leading-8 text-graphite">
+            <p className="max-w-2xl self-end text-lg leading-8 text-white/55">
               Traditional monitoring tells you that an agent failed. Black Box preserves the execution path that explains why, then turns that evidence into a targeted repair workflow.
             </p>
           </div>
 
-          <div className="mt-14 grid border-y border-rule lg:grid-cols-3">
-            {capabilities.map(({ icon: Icon, number, title, text }, index) => (
-              <article key={title} className={`py-7 lg:px-7 lg:py-9 ${index < capabilities.length - 1 ? "border-b border-rule lg:border-b-0 lg:border-r" : ""} ${index === 0 ? "lg:pl-0" : ""}`}>
-                <div className="flex items-center justify-between">
-                  <Icon className="h-5 w-5 text-orange" />
-                  <span className="font-mono text-xs text-ghost">{number}</span>
-                </div>
-                <h3 className="heading mt-8 text-xl">{title}</h3>
-                <p className="mt-3 max-w-sm text-sm leading-6 text-graphite">{text}</p>
-              </article>
+          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {capabilities.map(({ icon: Icon, number, title, text }) => (
+              <FlipCard key={title} icon={Icon} number={number} title={title} text={text} />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="proof" className="bg-paper px-5 py-20 sm:px-8 sm:py-28">
+      {/* ─── Product screenshot ─── */}
+      <section id="product" className="bg-ink px-5 py-24 sm:px-8 sm:py-32">
         <div className="mx-auto max-w-[1440px]">
           <div className="grid items-end gap-8 lg:grid-cols-[1fr_0.8fr]">
             <div>
-              <p className="font-mono text-xs uppercase text-advisory">Evidence, not another dashboard</p>
-              <h2 className="heading mt-4 max-w-3xl text-3xl leading-[44px]">One saved investigation tells the complete story.</h2>
+              <p className="inline-flex items-center gap-2 font-mono text-xs uppercase text-advisory">
+                <ShieldCheck className="h-3.5 w-3.5" /> Evidence, not another dashboard
+              </p>
+              <h2 className="heading mt-5 max-w-3xl text-3xl leading-[1.2] text-white sm:text-[40px]">
+                One saved investigation tells the complete story.
+              </h2>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm text-graphite">
+            <div className="grid grid-cols-2 gap-4 text-sm text-white/55">
               <p className="flex items-center gap-2"><Check className="h-4 w-4 text-normal" /> Works without LLM quota</p>
               <p className="flex items-center gap-2"><Gauge className="h-4 w-4 text-advisory" /> Measures repair cost</p>
               <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-normal" /> Keeps source evidence</p>
@@ -142,35 +225,62 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-12 overflow-hidden border border-rule bg-panel shadow-popover">
-            <div className="flex items-center gap-2 border-b border-rule px-4 py-3">
-              <span className="h-2 w-2 rounded-full bg-warning" />
-              <span className="h-2 w-2 rounded-full bg-caution" />
-              <span className="h-2 w-2 rounded-full bg-normal" />
-              <span className="ml-3 font-mono text-[11px] text-graphite">Saved Golden Demo · no provider calls</span>
+          <div className="mt-14 overflow-hidden rounded-panel border border-white/10 bg-[#0d1117] shadow-[0_16px_48px_rgba(0,0,0,.4)]">
+            <div className="flex items-center gap-2 border-b border-white/10 px-5 py-3">
+              <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-caution/70" />
+              <span className="h-2.5 w-2.5 rounded-full bg-normal/70" />
+              <span className="ml-4 font-mono text-[11px] text-white/35">Saved Golden Demo · no provider calls</span>
             </div>
-            <img src="/golden-demo-preview.png" alt="Black Box Golden Demo showing a failed AI answer, its recorded execution trace, culprit diagnosis, and verified repair" className="block h-auto w-full" />
+            <img
+              src="/golden-demo-preview.png"
+              alt="Black Box Golden Demo showing a failed AI answer, its recorded execution trace, culprit diagnosis, and verified repair"
+              className="block h-auto w-full"
+            />
           </div>
         </div>
       </section>
 
-      <section className="border-t border-rule bg-ink px-5 py-16 text-white sm:px-8 sm:py-20">
-        <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-8 sm:flex-row sm:items-end">
-          <div>
+      {/* ─── CTA ─── */}
+      <section id="demo" className="relative overflow-hidden border-t border-white/10 bg-[#0d1117] px-5 py-24 sm:px-8 sm:py-28">
+        <Suspense fallback={null}>
+          <RisingLines
+            className="absolute inset-0 h-full w-full"
+            color="#FF4F00"
+            haloColor="#FF8C42"
+            horizonColor="#FF4F00"
+            particleCount={60}
+            beamCount={5}
+            riseSpeed={0.35}
+          />
+        </Suspense>
+        <div className="relative mx-auto max-w-[1440px]">
+          <div className="mx-auto max-w-2xl text-center">
             <p className="font-mono text-xs uppercase text-orange">Prepared judge flow</p>
-            <h2 className="heading mt-4 max-w-2xl text-3xl leading-[44px]">Watch one failure become one verified fix.</h2>
-            <p className="mt-4 max-w-xl text-sm text-white/60">The account is prefilled and the investigation is recorded, so the demonstration stays reliable on stage.</p>
+            <h2 className="heading mt-5 text-3xl leading-[1.2] text-white sm:text-[40px] [text-shadow:0_2px_16px_rgba(0,0,0,.5)]">
+              Watch one failure become one verified fix.
+            </h2>
+            <p className="mx-auto mt-5 max-w-xl text-sm leading-6 text-white/60 [text-shadow:0_1px_6px_rgba(0,0,0,.5)]">
+              The account is prefilled and the investigation is recorded, so the demonstration stays reliable on stage. No live LLM quota is consumed.
+            </p>
+            <Link
+              to="/signin"
+              className="relative mt-8 inline-flex h-12 items-center gap-2 rounded-control bg-orange px-6 text-sm font-medium text-white shadow-[0_0_24px_rgba(255,79,0,.25)] transition-all hover:bg-[#e54600] hover:shadow-[0_0_32px_rgba(255,79,0,.35)]"
+            >
+              Enter Black Box <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-          <Link to="/signin" className="inline-flex h-12 shrink-0 items-center gap-2 rounded-control bg-orange px-5 text-sm font-medium text-white">
-            Enter Black Box <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
       </section>
 
-      <footer className="border-t border-white/10 bg-ink px-5 py-6 text-white/45 sm:px-8">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between text-xs">
-          <span>Black Box</span>
-          <span>AI failure intelligence</span>
+      {/* ─── Footer ─── */}
+      <footer className="border-t border-white/10 bg-ink px-5 py-7 sm:px-8">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between">
+          <span className="flex items-center gap-2">
+            <LogoMark className="h-5 w-5" />
+            <span className="text-xs text-white/40">Black Box</span>
+          </span>
+          <span className="text-xs text-white/30">AI failure intelligence</span>
         </div>
       </footer>
     </main>

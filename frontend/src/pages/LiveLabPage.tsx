@@ -23,6 +23,7 @@ import {
   ErrorState,
   OutcomeChip,
   SegmentedControl,
+  Select,
   Skeleton,
   StatChip,
 } from "../components/ui";
@@ -142,7 +143,7 @@ export default function LiveLabPage() {
       ) : (
       <>
       <div className="mt-6 grid grid-cols-2 gap-6 max-[900px]:grid-cols-1">
-        <section className="flex gap-4 border-b border-rule bg-panel p-5">
+        <section className="flex gap-4 rounded-panel border border-rule bg-panel p-5">
           <StepNumber number={1} state={runId ? "done" : "active"} />
           <div className="min-w-0 flex-1">
             <h2 className="heading text-lg">Pick a {t("task")}</h2>
@@ -167,7 +168,7 @@ export default function LiveLabPage() {
             />
           </div>
         </section>
-        <section className="flex gap-4 border-b border-rule bg-panel p-5">
+        <section className="flex gap-4 rounded-panel border border-rule bg-panel p-5">
           <StepNumber
             number={2}
             state={runId ? "done" : taskId ? "active" : "waiting"}
@@ -178,39 +179,31 @@ export default function LiveLabPage() {
               <span className="font-normal text-graphite">(optional)</span>
             </h2>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <select
+              <Select
                 aria-label="Failure type"
                 value={failure}
-                onChange={(event) => setFailure(event.target.value)}
-                className="h-11 rounded-control border border-rule bg-panel px-3"
-              >
-                <option value="">No failure</option>
-                {[
-                  ...new Set(
-                    (targets.data?.targets ?? []).map(
-                      (item) => item.fault_type,
-                    ),
-                  ),
-                ].map((value) => (
-                  <option key={value} value={value}>
-                    {(workspace === "nimbu" ? businessFailureNames[value] : undefined) ?? failureNames[value] ?? value}
-                  </option>
-                ))}
-              </select>
-              <select
+                onChange={setFailure}
+                placeholder="No failure"
+                options={[
+                  { value: "", label: "No failure" },
+                  ...[...new Set((targets.data?.targets ?? []).map((item) => item.fault_type))].map((value) => ({
+                    value,
+                    label: (workspace === "nimbu" ? businessFailureNames[value] : undefined) ?? failureNames[value] ?? value,
+                  })),
+                ]}
+              />
+              <Select
                 aria-label="Target step"
-                disabled={!failure}
                 value={target}
-                onChange={(event) => setTarget(event.target.value)}
-                className="h-11 rounded-control border border-rule bg-panel px-3 disabled:opacity-50"
-              >
-                <option value="">Target step</option>
-                {(targets.data?.targets ?? [])
-                  .filter((item) => item.fault_type === failure)
-                  .map((item) => (
-                    <option key={item.step_key}>{item.step_key}</option>
-                  ))}
-              </select>
+                onChange={setTarget}
+                placeholder="Target step"
+                options={[
+                  { value: "", label: "Target step" },
+                  ...(targets.data?.targets ?? [])
+                    .filter((item) => item.fault_type === failure)
+                    .map((item) => ({ value: item.step_key, label: item.step_key })),
+                ]}
+              />
             </div>
           </div>
         </section>

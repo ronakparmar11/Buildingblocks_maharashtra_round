@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIncidents } from "../api/hooks";
 import type { IncidentSummary } from "../api/types";
-import { Button, EmptyState, ErrorState, Skeleton } from "../components/ui";
+import { Button, EmptyState, ErrorState, Select, Skeleton } from "../components/ui";
 
 const inr = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -60,8 +60,6 @@ export default function IncidentsPage() {
     (params.has("status") && status !== "active");
   const hasOtherStatuses = Boolean(incidents.data?.items.length);
   const showAll = () => setParams({ status: "all" });
-  const selectClass = "h-9 rounded-chip border border-rule bg-panel px-3 text-sm text-graphite";
-
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
       <div className="mb-5 flex items-end justify-between">
@@ -72,27 +70,45 @@ export default function IncidentsPage() {
         <span className="text-sm text-graphite">{items.length} shown</span>
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
-        <select aria-label="Status" value={status} onChange={(event) => setFilter("status", event.target.value)} className={selectClass}>
-          <option value="active">Open and investigating</option>
-          <option value="all">All statuses</option>
-          <option value="open">Open</option>
-          <option value="investigating">Investigating</option>
-          <option value="fix_verified">Fix verified</option>
-          <option value="resolved">Resolved</option>
-        </select>
-        <select aria-label="Severity" value={params.get("severity") ?? ""} onChange={(event) => setFilter("severity", event.target.value)} className={selectClass}>
-          <option value="">All severities</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <select aria-label="Category" value={params.get("category") ?? ""} onChange={(event) => setFilter("category", event.target.value)} className={selectClass}>
-          <option value="">All categories</option>
-          <option value="refunds">Refunds</option>
-          <option value="returns">Returns</option>
-          <option value="shipping">Shipping</option>
-          <option value="payments">Payments</option>
-        </select>
+        <Select
+          aria-label="Status"
+          value={status}
+          onChange={(value) => setFilter("status", value)}
+          placeholder="Status"
+          options={[
+            { value: "active", label: "Open and investigating" },
+            { value: "all", label: "All statuses" },
+            { value: "open", label: "Open" },
+            { value: "investigating", label: "Investigating" },
+            { value: "fix_verified", label: "Fix verified" },
+            { value: "resolved", label: "Resolved" },
+          ]}
+        />
+        <Select
+          aria-label="Severity"
+          value={params.get("severity") ?? ""}
+          onChange={(value) => setFilter("severity", value)}
+          placeholder="All severities"
+          options={[
+            { value: "", label: "All severities" },
+            { value: "high", label: "High" },
+            { value: "medium", label: "Medium" },
+            { value: "low", label: "Low" },
+          ]}
+        />
+        <Select
+          aria-label="Category"
+          value={params.get("category") ?? ""}
+          onChange={(value) => setFilter("category", value)}
+          placeholder="All categories"
+          options={[
+            { value: "", label: "All categories" },
+            { value: "refunds", label: "Refunds" },
+            { value: "returns", label: "Returns" },
+            { value: "shipping", label: "Shipping" },
+            { value: "payments", label: "Payments" },
+          ]}
+        />
       </div>
       {incidents.isError ? (
         <ErrorState onRetry={() => incidents.refetch()} />

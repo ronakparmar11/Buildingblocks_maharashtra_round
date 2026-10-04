@@ -13,6 +13,7 @@ import {
   RunTypeLabel,
   ScoreMeter,
   SegmentedControl,
+  Select,
   Skeleton,
   StatChip,
   StepKey,
@@ -30,6 +31,7 @@ const typeSizes = [["xs","text-xs"],["sm","text-sm"],["md","text-md"],["lg","tex
 export default function Styleguide() {
   const [tab, setTab] = useState("Why");
   const [segment, setSegment] = useState("Seen");
+  const [selectVal, setSelectVal] = useState("");
   const [json, setJson] = useState('{"answer":"yes"}');
   return (
     <div className="mx-auto max-w-[1200px] space-y-10 px-6 py-8">
@@ -87,6 +89,12 @@ export default function Styleguide() {
           options={["Seen", "Held-out", "Natural"]}
           value={segment}
           onChange={setSegment}
+        />
+        <Select
+          value={selectVal}
+          onChange={setSelectVal}
+          placeholder="Outcome"
+          options={[{ value: "", label: "All outcomes" }, { value: "fail", label: "Failed" }, { value: "pass", label: "Passed" }]}
         />
         <Combobox
           value=""

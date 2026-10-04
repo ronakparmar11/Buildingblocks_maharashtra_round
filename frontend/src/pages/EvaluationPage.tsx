@@ -19,6 +19,7 @@ import {
   SegmentedControl,
   Skeleton,
 } from "../components/ui";
+import { CHART } from "../lib/chartColors";
 
 type Baseline = { name: string; top1: number; top3: number };
 type Lofo = { name: string; top1: number; top3: number; mrr: number };
@@ -159,7 +160,7 @@ export default function EvaluationPage() {
   const faultData = data.by_fault.map((item) => ({
     ...item,
     value: Math.round(item.accuracy * 100),
-    fill: item.heldout ? "#0B6E8A" : "#14202B",
+    fill: item.heldout ? CHART.advisory : CHART.ink,
   }));
   return (
     <div className="mx-auto max-w-[1440px] px-6 py-8">
@@ -188,7 +189,7 @@ export default function EvaluationPage() {
         />
       </div>
       <div className="mt-6 grid grid-cols-2 gap-6 max-[1100px]:grid-cols-1">
-        <section className="border-b border-rule bg-panel p-5">
+        <section className="rounded-panel border border-rule bg-panel p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="heading text-lg">Model vs. other approaches</h2>
@@ -221,20 +222,20 @@ export default function EvaluationPage() {
                 layout="vertical"
                 margin={{ left: 35, right: 35 }}
               >
-                <CartesianGrid horizontal={false} stroke="#DFE5E8" />
+                <CartesianGrid horizontal={false} stroke={CHART.rule} />
                 <XAxis type="number" domain={[0, 100]} hide />
                 <YAxis
                   type="category"
                   dataKey="name"
                   width={125}
-                  tick={{ fontSize: 12, fill: "#5B6873" }}
+                  tick={{ fontSize: 12, fill: CHART.graphite }}
                 />
                 <Tooltip />
                 <Legend />
                 <Bar
                   dataKey="top1"
                   name="Top-1"
-                  fill="#FF4F00"
+                  fill={CHART.orange}
                   isAnimationActive={false}
                 >
                   <LabelList
@@ -247,7 +248,7 @@ export default function EvaluationPage() {
                 <Bar
                   dataKey="top3"
                   name="Top-3"
-                  fill="#5B6873"
+                  fill={CHART.graphite}
                   fillOpacity={0.4}
                   isAnimationActive={false}
                 >
@@ -277,10 +278,10 @@ export default function EvaluationPage() {
             ms.
           </p>
         </section>
-        <section className="border-b border-rule bg-panel p-5">
+        <section className="rounded-panel border border-rule bg-panel p-5">
           <h2 className="heading text-lg">Failure types it never trained on</h2>
           <p className="mb-4 text-sm text-graphite">Leave-one-out evaluation</p>
-          {data.lofo.length ? <table className="w-full text-sm">
+          {data.lofo.length ? <div className="overflow-x-auto"><table className="w-full min-w-[500px] text-sm">
             <thead>
               <tr className="border-b border-rule text-xs text-graphite">
                 <th className="py-2 text-left font-medium">Failure type</th>
@@ -305,9 +306,9 @@ export default function EvaluationPage() {
                 </tr>
               ))}
             </tbody>
-          </table> : <p className="py-12 text-sm text-graphite">No leave-one-out results have been generated yet.</p>}
+          </table></div> : <p className="py-12 text-sm text-graphite">No leave-one-out results have been generated yet.</p>}
         </section>
-        <section className="border-b border-rule bg-panel p-5">
+        <section className="rounded-panel border border-rule bg-panel p-5">
           <h2 className="heading text-lg">Accuracy by failure type</h2>
           {faultData.length ? <div
             className="mt-4 h-64"
@@ -351,7 +352,7 @@ export default function EvaluationPage() {
             </tbody>
           </table>
         </section>
-        <section className="border-b border-rule bg-panel p-5">
+        <section className="rounded-panel border border-rule bg-panel p-5">
           <h2 className="heading text-lg">Cost of proving the cause</h2>
           <div className="mt-6 space-y-5">
             {[

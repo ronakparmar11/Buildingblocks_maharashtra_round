@@ -140,7 +140,7 @@ export default function RunDetailPage() {
           </div>
         </div>
       </header>
-      <div className="mx-auto grid max-w-[1600px] grid-cols-[220px_minmax(0,1fr)_400px] grid-rows-[minmax(420px,calc(100vh-300px))_96px] max-[1200px]:grid-cols-[minmax(0,1fr)_400px] max-[900px]:grid-cols-1 max-[900px]:grid-rows-[430px_auto_96px]">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-[220px_minmax(0,1fr)_minmax(280px,400px)] grid-rows-[minmax(420px,calc(100vh-300px))_96px] max-[1200px]:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] max-[900px]:grid-cols-1 max-[900px]:grid-rows-[430px_auto_96px]">
         <aside className="border-r border-rule bg-panel p-5 max-[1200px]:hidden">
           <h2 className="heading mb-5 text-lg capitalize">{t("run")} facts</h2>
           <dl className="space-y-4">
@@ -175,7 +175,7 @@ export default function RunDetailPage() {
               type="checkbox"
               checked={groundTruth}
               onChange={(event) => setGroundTruth(event.target.checked)}
-              className="h-4 w-4 accent-advisory"
+              className="h-4 w-4 accent-orange"
             />
           </label>
           <p className="mt-2 text-xs text-graphite">

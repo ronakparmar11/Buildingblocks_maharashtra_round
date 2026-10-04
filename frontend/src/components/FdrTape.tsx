@@ -1,4 +1,5 @@
 import type { DiagnosisItem, StepRecord } from "../api/types";
+import { CHART } from "../lib/chartColors";
 export default function FdrTape({
   steps,
   ranking = [],
@@ -61,7 +62,7 @@ export default function FdrTape({
         <path
           d={path}
           fill="none"
-          stroke="#14202B"
+          stroke={CHART.ink}
           strokeWidth="1.5"
           vectorEffect="non-scaling-stroke"
         />
@@ -84,7 +85,7 @@ export default function FdrTape({
                   x2={x + column}
                   y1={height - 8 - score(step.step_key, index) * 40}
                   y2={height - 8 - score(step.step_key, index) * 40}
-                  stroke="#FF4F00"
+                  stroke={CHART.orange}
                   strokeWidth="3"
                 />
               )}
@@ -93,7 +94,7 @@ export default function FdrTape({
                 x2={x + column / 2}
                 y1="56"
                 y2="61"
-                stroke="#5B6873"
+                stroke={CHART.graphite}
               />
               <text
                 x={x + column / 2}
@@ -101,7 +102,7 @@ export default function FdrTape({
                 textAnchor="middle"
                 fontFamily="B612 Mono"
                 fontSize="8"
-                fill="#5B6873"
+                fill={CHART.graphite}
               >
                 {step.step_key.length > 15
                   ? `${step.step_key.slice(0, 13)}…`
@@ -117,13 +118,13 @@ export default function FdrTape({
               x2={(activeIndex + 0.5) * column}
               y1="2"
               y2="61"
-              stroke="#14202B"
+              stroke={CHART.ink}
             />
             <circle
               cx={(activeIndex + 0.5) * column}
               cy="4"
               r="3"
-              fill="#14202B"
+              fill={CHART.ink}
             />
           </g>
         )}

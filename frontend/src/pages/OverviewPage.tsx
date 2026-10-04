@@ -1,4 +1,4 @@
-import { Map, Merge, Search, ShieldCheck, TextSelect } from "lucide-react";
+import { AlertTriangle, ArrowRight, Map, Merge, Search, ShieldCheck, TextSelect, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   CartesianGrid,
@@ -11,7 +11,8 @@ import {
   YAxis,
 } from "recharts";
 import { useOverview } from "../api/hooks";
-import { EmptyState, ErrorState, KpiRow, Skeleton } from "../components/ui";
+import { EmptyState, ErrorState, Skeleton } from "../components/ui";
+import { CHART } from "../lib/chartColors";
 import { useWorkspace, workspaceDetails } from "../context/workspace";
 import { t } from "../lib/vocab";
 
@@ -21,10 +22,10 @@ const inr = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 const icons = { retrieve: Search, extract: TextSelect, plan: Map, check: ShieldCheck, synthesize: Merge };
-const severityStyles: Record<string, string> = {
-  high: "bg-warning",
-  medium: "bg-caution",
-  low: "bg-graphite",
+const severityStyles: Record<string, { dot: string; bg: string }> = {
+  high: { dot: "bg-warning", bg: "bg-[#fdf2f4]" },
+  medium: { dot: "bg-caution", bg: "bg-caution-tint" },
+  low: { dot: "bg-graphite", bg: "bg-rule-soft" },
 };
 const words = (value: string) =>
   value.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
@@ -38,34 +39,37 @@ function HorizontalBars({
 }) {
   const maximum = Math.max(1, ...rows.map((row) => row.count));
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 space-y-2">
       {rows.map((row, index) => {
         const key = "name" in row ? row.name : row.feature;
         const label = "name" in row ? words(row.name) : row.text;
         const Icon = "name" in row ? icons[row.name as keyof typeof icons] ?? Map : null;
+        const pct = (row.count / maximum) * 100;
         return (
           <Link
             key={key}
             to={`/conversations?outcome=fail&${kind === "steps" ? "cause_name" : "reason"}=${encodeURIComponent(key)}`}
-            className="grid grid-cols-[minmax(130px,1fr)_minmax(90px,1.1fr)_42px] items-center gap-3 text-sm"
+            className="group grid grid-cols-[minmax(130px,1fr)_minmax(90px,1.1fr)_42px] items-center gap-3 rounded-node px-3 py-2.5 text-sm transition-colors hover:bg-rule-soft/60"
           >
-            <span className="flex min-w-0 items-center gap-2 truncate">
-              {Icon && <Icon className="h-4 w-4 shrink-0 text-graphite" />}
-              <span className="truncate">{label}</span>
+            <span className="flex min-w-0 items-center gap-2.5 truncate">
+              {Icon && <Icon className="h-4 w-4 shrink-0 text-graphite transition-colors group-hover:text-orange" />}
+              <span className="truncate font-medium">{label}</span>
             </span>
-            <span className="h-3 bg-rule-soft">
+            <span className="h-2 overflow-hidden rounded-chip bg-rule-soft">
               <span
-                className={`block h-full ${index === 0 ? "bg-orange" : "bg-ink"}`}
-                style={{ width: `${(row.count / maximum) * 100}%` }}
+                className={`block h-full rounded-chip transition-all ${index === 0 ? "bg-orange" : "bg-ink/60"}`}
+                style={{ width: `${pct}%` }}
               />
             </span>
-            <span className="text-right font-mono text-xs">{row.count}</span>
+            <span className="text-right font-mono text-xs text-graphite">{row.count}</span>
           </Link>
         );
       })}
     </div>
   );
 }
+
+const kpiAccents = ["border-l-orange", "border-l-warning", "border-l-caution", "border-l-advisory", "border-l-warning"];
 
 export default function OverviewPage() {
   const { workspace } = useWorkspace();
@@ -74,8 +78,8 @@ export default function OverviewPage() {
     return (
       <div className="mx-auto max-w-[1440px] space-y-5 px-6 py-7">
         <Skeleton className="h-16 w-2/3" />
-        <Skeleton className="h-24" />
-        <div className="grid grid-cols-2 gap-6"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-24" />)}</div>
+        <div className="grid grid-cols-2 gap-6"><Skeleton className="h-72" /><Skeleton className="h-72" /></div>
       </div>
     );
   if (overview.isError) return <ErrorState onRetry={() => overview.refetch()} />;
@@ -89,7 +93,7 @@ export default function OverviewPage() {
           action={
             <Link
               to="/lab"
-              className="inline-flex h-9 items-center justify-center rounded-control border border-orange bg-orange px-4 text-sm font-medium text-white"
+              className="inline-flex h-9 items-center justify-center rounded-control bg-orange px-4 text-sm font-medium text-white transition-colors hover:bg-[#e54600]"
             >
               Run a simulation
             </Link>
@@ -102,58 +106,90 @@ export default function OverviewPage() {
     label: new Date(`${item.date}T00:00:00`).toLocaleDateString("en-IN", { weekday: "short" }),
     percentage: item.rate * 100,
   }));
+  const kpis = [
+    { value: data.kpis.conversations.toLocaleString("en-IN"), label: `${t("runs")} this week` },
+    { value: `${(data.kpis.failure_rate * 100).toFixed(1)}%`, label: "answered wrong this week" },
+    { value: inr.format(data.kpis.estimated_cost_inr), label: "estimated cost of wrong answers" },
+    { value: String(data.kpis.open_incidents), label: "open incidents" },
+    { value: String(data.kpis.wrong), label: workspace === "nimbu" ? "wrong agent replies" : "wrong final answers" },
+  ];
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
-      <div className="mb-5">
-        <h1 className="heading text-xl">{workspaceDetails[workspace].name}</h1>
-        <p className="heading mt-1 text-lg text-graphite">{data.headline}</p>
+      {/* ─── Header ─── */}
+      <div className="mb-6">
+        <h1 className="heading text-2xl">{workspaceDetails[workspace].name}</h1>
+        <p className="mt-1 text-md text-graphite">{data.headline}</p>
       </div>
-      <KpiRow
-        items={[
-          { value: data.kpis.conversations.toLocaleString("en-IN"), label: `${t("runs")} this week` },
-          { value: `${(data.kpis.failure_rate * 100).toFixed(1)}%`, label: "answered wrong this week" },
-          { value: inr.format(data.kpis.estimated_cost_inr), label: "estimated cost of wrong answers" },
-          { value: String(data.kpis.open_incidents), label: "open incidents" },
-          { value: String(data.kpis.wrong), label: workspace === "nimbu" ? "wrong agent replies" : "wrong final answers" },
-        ]}
-      />
-      <div className="grid border-b border-rule lg:grid-cols-[1.08fr_0.92fr]">
-        <section className="min-h-[252px] border-rule px-1 py-5 lg:border-r lg:pr-6">
-          <div className="flex items-baseline justify-between">
-            <h2 className="heading text-lg">Wrong answers per day</h2>
-            <span className="text-xs text-graphite">Last 7 days</span>
+
+      {/* ─── KPI cards ─── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-4">
+        {kpis.map((item, i) => (
+          <div
+            key={item.label}
+            className={`rounded-panel border border-rule ${kpiAccents[i]} border-l-[3px] bg-panel p-4 sm:p-5 ${i === 0 ? "col-span-2 sm:col-span-1" : ""}`}
+          >
+            <strong className="block font-mono text-2xl leading-none text-ink">
+              {/[%₹]/.test(item.value)
+                ? item.value.split(/(%|₹)/).map((part, j) =>
+                    part === "%" || part === "₹"
+                      ? <span key={j} className="font-sans text-lg text-graphite">{part}</span>
+                      : <span key={j}>{part}</span>
+                  )
+                : item.value}
+            </strong>
+            <p className="mt-1.5 text-sm leading-snug text-graphite">{item.label}</p>
           </div>
-          <div className="mt-3 h-[190px]">
+        ))}
+      </div>
+
+      {/* ─── Chart + Incidents ─── */}
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="rounded-panel border border-rule bg-panel p-5 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-8 w-8 place-items-center rounded-control bg-orange-tint text-orange"><TrendingUp className="h-4 w-4" /></span>
+              <h2 className="heading text-lg">Wrong answers per day</h2>
+            </div>
+            <span className="rounded-chip bg-rule-soft px-2.5 py-1 text-xs text-graphite">Last 7 days</span>
+          </div>
+          <div className="mt-4 h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-                <CartesianGrid vertical={false} stroke="#DFE5E8" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#5B6873", fontSize: 12 }} />
-                <YAxis tickFormatter={(value) => `${value}%`} axisLine={false} tickLine={false} tick={{ fill: "#5B6873", fontSize: 12 }} />
-                <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, "Answered wrong"]} />
-                <ReferenceLine y={data.threshold * 100} stroke="#D48A00" strokeDasharray="5 4" label={{ value: "Alert threshold", fill: "#5B6873", fontSize: 11, position: "insideTopRight" }} />
-                <Line type="monotone" dataKey="percentage" stroke="#FF4F00" strokeWidth={2.5} dot={{ r: 3, fill: "#FF4F00" }} activeDot={{ r: 5 }} />
+                <CartesianGrid vertical={false} stroke={CHART.rule} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: CHART.graphite, fontSize: 12 }} />
+                <YAxis tickFormatter={(value) => `${value}%`} axisLine={false} tickLine={false} tick={{ fill: CHART.graphite, fontSize: 12 }} />
+                <Tooltip
+                  formatter={(value) => [`${Number(value).toFixed(1)}%`, "Answered wrong"]}
+                  contentStyle={{ borderRadius: 8, border: `1px solid ${CHART.rule}`, boxShadow: "0 4px 12px rgba(20,32,43,.1)" }}
+                />
+                <ReferenceLine y={data.threshold * 100} stroke={CHART.caution} strokeDasharray="5 4" label={{ value: "Alert threshold", fill: CHART.graphite, fontSize: 11, position: "insideTopRight" }} />
+                <Line type="monotone" dataKey="percentage" stroke={CHART.orange} strokeWidth={2.5} dot={{ r: 3, fill: CHART.orange, strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </section>
-        <section className="min-h-[252px] py-5 lg:pl-6">
-          <div className="flex items-baseline justify-between">
-            <h2 className="heading text-lg">Open incidents</h2>
-            <Link to="/incidents" className="text-xs text-advisory">View all</Link>
+
+        <section className="rounded-panel border border-rule bg-panel p-5 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-8 w-8 place-items-center rounded-control bg-[#fdf2f4] text-warning"><AlertTriangle className="h-4 w-4" /></span>
+              <h2 className="heading text-lg">Open incidents</h2>
+            </div>
+            <Link to="/incidents" className="inline-flex items-center gap-1 text-xs font-medium text-advisory transition-colors hover:text-ink">View all <ArrowRight className="h-3 w-3" /></Link>
           </div>
-          <div className="mt-3 divide-y divide-rule-soft border-y border-rule">
+          <div className="mt-4 space-y-1">
             {data.open_incidents.length ? (
               data.open_incidents.slice(0, 4).map((incident) => (
                 <Link
                   key={incident.incident_id}
                   to={`/incidents/${incident.incident_id}`}
-                  className="grid min-h-12 grid-cols-[78px_1fr_auto] items-center gap-3 py-2 text-sm"
+                  className="group grid min-h-12 grid-cols-[auto_1fr_auto] items-center gap-3 rounded-node px-3 py-2.5 text-sm transition-colors hover:bg-paper"
                 >
-                  <span className="flex items-center gap-2 capitalize">
-                    <span className={`h-2 w-2 rounded-full ${severityStyles[incident.severity]}`} />
+                  <span className={`inline-flex items-center gap-2 rounded-chip px-2 py-0.5 text-xs font-medium capitalize ${severityStyles[incident.severity].bg}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${severityStyles[incident.severity].dot}`} />
                     {incident.severity}
                   </span>
-                  <span className="truncate font-medium" title={incident.title}>{incident.title}</span>
+                  <span className="truncate font-medium transition-colors group-hover:text-orange" title={incident.title}>{incident.title}</span>
                   <span className="flex gap-3 whitespace-nowrap font-mono text-xs text-graphite">
                     <span>{incident.n_runs} {t("runs")}</span>
                     <span>{inr.format(incident.est_cost_inr)}</span>
@@ -169,8 +205,10 @@ export default function OverviewPage() {
           </div>
         </section>
       </div>
-      <div className="grid gap-8 py-6 lg:grid-cols-2">
-        <section>
+
+      {/* ─── Breakdowns ─── */}
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <section className="rounded-panel border border-rule bg-panel p-5 sm:p-6">
           <h2 className="heading text-lg">Where failures start</h2>
           {data.by_step_name.length ? (
             <HorizontalBars rows={data.by_step_name} kind="steps" />
@@ -178,7 +216,7 @@ export default function OverviewPage() {
             <p className="mt-4 text-sm text-graphite">No failures in this period.</p>
           )}
         </section>
-        <section>
+        <section className="rounded-panel border border-rule bg-panel p-5 sm:p-6">
           <h2 className="heading text-lg">Most common reasons</h2>
           {data.by_reason.length ? (
             <HorizontalBars rows={data.by_reason} kind="reasons" />
