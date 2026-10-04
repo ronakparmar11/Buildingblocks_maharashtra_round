@@ -61,13 +61,9 @@ from blackbox.store.models import (
     Step,
     Task,
 )
+from blackbox.workspaces import WORKSPACES
 
 router = APIRouter()
-
-WORKSPACES = {
-    "hotpot": ("HotpotQA", "Public multi-hop question answering benchmark."),
-    "nimbu": ("Nimbu Living support", "Customer support for an Indian home and kitchen store."),
-}
 
 
 def _incident_or_404(incident_id: str, workspace: str) -> Incident:
@@ -89,12 +85,12 @@ def get_workspaces() -> list[WorkspaceSummary]:
         counts = Counter(session.exec(select(Run.workspace)).all())
     return [
         WorkspaceSummary(
-            id=workspace,
-            name=name,
-            description=description,
-            n_runs=counts[workspace],
+            id=workspace.workspace_id,
+            name=workspace.display_name,
+            description=workspace.description,
+            n_runs=counts[workspace.workspace_id],
         )
-        for workspace, (name, description) in WORKSPACES.items()
+        for workspace in WORKSPACES.values()
     ]
 
 

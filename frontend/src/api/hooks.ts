@@ -62,6 +62,10 @@ export const useLiveRun = () => {
   const { workspace } = useWorkspace();
   return useMutation({ mutationFn: (body: T.LiveRunRequest) => apiPost<T.LiveRunResponse>(scoped("/live/run", workspace), body) });
 };
+export const useVoiceAnswer = () => {
+  const { workspace } = useWorkspace();
+  return useMutation({ mutationFn: (body: T.VoiceAnswerRequest) => apiPost<T.VoiceAnswerResponse>(scoped("/voice/answer", workspace), body) });
+};
 export const useHealth = () => {
   const { workspace } = useWorkspace();
   return useQuery({ queryKey: ["health", workspace], queryFn: () => apiGet<T.HealthResponse>(scoped("/health", workspace)) });

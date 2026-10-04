@@ -1,11 +1,38 @@
 import { createContext, useContext } from "react";
 
-export type WorkspaceId = "nimbu" | "hotpot";
+export type WorkspaceId =
+  | "nimbu"
+  | "aavya"
+  | "bhoomi"
+  | "jugnu"
+  | "taara"
+  | "vayu"
+  | "hotpot";
 
 export const workspaceDetails = {
   nimbu: {
     name: "Nimbu Living support",
     description: "Customer support agent and help center",
+  },
+  aavya: {
+    name: "Aavya Skincare support",
+    description: "Clean beauty and skincare",
+  },
+  bhoomi: {
+    name: "Bhoomi Organics support",
+    description: "Organic grocery marketplace",
+  },
+  jugnu: {
+    name: "Jugnu Kids support",
+    description: "Children's clothing retailer",
+  },
+  taara: {
+    name: "Taara Jewellery support",
+    description: "Contemporary jewellery brand",
+  },
+  vayu: {
+    name: "Vayu Mobility support",
+    description: "Electric scooter company",
   },
   hotpot: {
     name: "Benchmark (HotpotQA)",
@@ -21,7 +48,7 @@ export type WorkspaceContextValue = {
 export const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export const isWorkspace = (value: string | null): value is WorkspaceId =>
-  value === "nimbu" || value === "hotpot";
+  value !== null && value in workspaceDetails;
 
 export function useWorkspace() {
   const value = useContext(WorkspaceContext);
