@@ -24,7 +24,7 @@ from blackbox.llm.fake import FakeLLM
 from blackbox.sdk.cassette import Cassette
 from blackbox.sdk.context import ExecutionContext
 from blackbox.sdk.tracer import Tracer
-from blackbox.store.models import Prediction, Task
+from blackbox.store.models import Prediction, Run, Task
 from blackbox.store.repo import get_steps, upsert_task
 
 RUN_ID = "r_demo_failed_comparison"
@@ -145,6 +145,30 @@ def test_failed_job_exposes_demo_recording_message(mock_client: TestClient) -> N
     assert response.status_code == 200
     assert response.json()["status"] == "failed"
     assert response.json()["result"] == {"error": message}
+
+
+def test_finished_live_run_triggers_incident_processing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from blackbox.api import lab
+
+    run = Run(
+        run_id="live-failure",
+        task_id="nimbu-task",
+        workspace="nimbu",
+        origin="live",
+        outcome="fail",
+    )
+    processed: list[str] = []
+    monkeypatch.setattr(lab, "_raise_demo_cassette_miss", lambda _: None)
+    monkeypatch.setattr(
+        lab, "on_run_finished", lambda finished: processed.append(finished.run_id)
+    )
+
+    result = lab._finish_live_run(run)
+
+    assert result == {"run_id": run.run_id}
+    assert processed == [run.run_id]
 
 
 def test_diagnosis_feature_error_returns_422(

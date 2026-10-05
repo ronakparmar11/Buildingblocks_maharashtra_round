@@ -16,6 +16,7 @@ from blackbox.api import (
     lab,
     replay,
     runs,
+    voice,
 )
 from blackbox.api.common import mock_mode
 from blackbox.config import get_settings
@@ -74,5 +75,6 @@ for api_router in (
     lab.router,
     health.router,
     business.router,
+    voice.router,
 ):
     app.include_router(api_router, prefix="/api")

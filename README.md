@@ -32,6 +32,18 @@ The final generation attempt on October 3, 2026 exhausted the configured Gemini 
 
 ![Evaluation](docs/img/eval-v2.png)
 
+## System architecture
+
+The browser application talks to the FastAPI control plane, which coordinates
+trace capture, diagnosis, replay, repair, incidents, and notifications. The
+traced execution core records every agent step and cassette lookup, while the
+offline CLI pipeline generates training data, verifies culprit labels, trains
+the ranker, and writes the model artifacts used by the online diagnoser.
+
+[![Black Box system architecture](docs/img/system-architecture.png)](.archify/architecture-blackbox-20261004-154009/blackbox-architecture.html)
+
+[Open the interactive system architecture](.archify/architecture-blackbox-20261004-154009/blackbox-architecture.html)
+
 ## How it works
 
 ```mermaid
