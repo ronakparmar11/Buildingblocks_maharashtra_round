@@ -104,7 +104,7 @@ export default function LandingPage() {
             <a href="#how-it-works" className="transition-colors hover:text-white">How it works</a>
             <a href="#architecture" className="transition-colors hover:text-white">Architecture</a>
             <a href="#product" className="transition-colors hover:text-white">Product</a>
-            <a href="#demo" className="transition-colors hover:text-white">Demo</a>
+            <a href="#demo" className="transition-colors hover:text-white">Get started</a>
           </nav>
           <Link
             to="/signin"
@@ -261,7 +261,7 @@ export default function LandingPage() {
             </div>
             <img
               src="/golden-demo-preview.png"
-              alt="Black Box Golden Demo showing a failed AI answer, its recorded execution trace, culprit diagnosis, and verified repair"
+              alt="Black Box showing a failed AI answer, its execution trace, culprit diagnosis, and verified repair"
               className="block h-auto w-full"
             />
           </div>
@@ -288,7 +288,7 @@ export default function LandingPage() {
               Watch one failure become one verified fix.
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-sm leading-6 text-white/60 [text-shadow:0_1px_6px_rgba(0,0,0,.5)]">
-              The account is prefilled and the investigation is recorded, so the demonstration stays reliable on stage. No live LLM quota is consumed.
+              Trace the failed conversation, inspect the evidence, and verify the repair in one workspace.
             </p>
             <Link
               to="/signin"

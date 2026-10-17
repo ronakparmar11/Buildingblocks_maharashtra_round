@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Black Box — flight recorder for AI agents",
+    "output": ".archify/architecture-blackbox-20261004-154009/blackbox-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/ronakparmar11/Buildingblocks_maharashtra_round.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "9e7c8a7abb370877e1cba426fef9fbeeca209f72"
+    },
+    "views": [
+      { "id": "live-run", "label": "Live run path", "focus": ["user", "frontend", "auth", "api", "agent", "sdk", "retriever", "llm", "db"], "note": "Browser → FastAPI job → traced agent → cassette/LLM → DB rows" },
+      { "id": "diagnose", "label": "Diagnose & explain", "focus": ["api", "diagnose", "artifacts", "db"], "note": "LightGBM LambdaRank scores steps; SHAP evidence becomes reasons" },
+      { "id": "counterfactual", "label": "Replay · bisect · repair", "focus": ["api", "repair", "replay", "bisect", "agent", "sdk"], "note": "Dependency-aware replay reuses unaffected steps from the source run" },
+      { "id": "incidents", "label": "Incidents & alerts", "focus": ["api", "incidents", "notifier", "smtp"], "note": "Business edition: group failures, cost them, email on rules" },
+      { "id": "offline", "label": "Offline pipeline", "focus": ["cli", "datagen", "faults", "bisect", "trainer", "artifacts", "db"], "note": "bb CLI generates, labels, trains and evaluates" }
+    ]
+  },
+  "components": [
+    { "id": "smtp", "type": "external", "label": "SMTP server", "sublabel": "smtplib SSL/STARTTLS", "pos": [40, 40], "size": [120, 64],
+      "sources": [ { "path": "blackbox/notify/mailer.py", "line": 13, "end_line": 45, "label": "Mailer.send" }, { "path": ".env.example", "line": 23, "end_line": 29, "label": "SMTP settings" } ] },
+    { "id": "user", "type": "external", "label": "Operator", "sublabel": "browser :5173", "pos": [260, 40], "size": [120, 64],
+      "sources": [ { "path": "start.sh", "line": 59, "end_line": 65, "label": "dev stack URLs" } ] },
+    { "id": "frontend", "type": "frontend", "label": "React SPA", "sublabel": "Router + TanStack Query", "pos": [480, 40], "size": [120, 64],
+      "sources": [ { "path": "frontend/src/main.tsx", "line": 10, "end_line": 20, "label": "providers" }, { "path": "frontend/src/App.tsx", "line": 181, "end_line": 198, "label": "routes" }, { "path": "frontend/src/api/hooks.ts", "line": 6, "end_line": 11, "label": "workspace scoping" } ] },
+    { "id": "auth", "type": "security", "label": "Demo auth", "sublabel": "HMAC session cookie", "pos": [700, 40], "size": [120, 64],
+      "sources": [ { "path": "blackbox/api/app.py", "line": 51, "end_line": 64, "label": "middleware" }, { "path": "blackbox/api/auth.py", "line": 27, "end_line": 72, "label": "token + login" } ] },
+
+    { "id": "notifier", "type": "backend", "label": "Notify worker", "sublabel": "queue + daily digest", "pos": [40, 200], "size": [120, 64],
+      "sources": [ { "path": "blackbox/notify/worker.py", "line": 26, "end_line": 34, "label": "daemon thread" }, { "path": "blackbox/notify/worker.py", "line": 81, "end_line": 95, "label": "deliver" }, { "path": "blackbox/notify/scheduler.py", "line": 27, "end_line": 35, "label": "digest loop" } ] },
+    { "id": "incidents", "type": "backend", "label": "Incident engine", "sublabel": "group · severity", "pos": [260, 200], "size": [120, 64],
+      "sources": [ { "path": "blackbox/incidents/engine.py", "line": 426, "end_line": 455, "label": "on_run_finished" }, { "path": "blackbox/incidents/engine.py", "line": 161, "end_line": 200, "label": "assign_incident" } ] },
+    { "id": "api", "type": "backend", "label": "FastAPI app", "sublabel": "uvicorn :8000 + jobs", "pos": [480, 200], "size": [120, 64],
+      "sources": [ { "path": "blackbox/api/app.py", "line": 27, "end_line": 78, "label": "lifespan + routers" }, { "path": "blackbox/api/replay.py", "line": 50, "end_line": 83, "label": "job executor" }, { "path": "blackbox/api/lab.py", "line": 84, "end_line": 164, "label": "live run job" } ] },
+    { "id": "diagnose", "type": "backend", "label": "Diagnoser", "sublabel": "LambdaRank + SHAP", "pos": [700, 200], "size": [120, 64],
+      "sources": [ { "path": "blackbox/model/predict.py", "line": 33, "end_line": 95, "label": "diagnose" }, { "path": "blackbox/model/explain.py", "line": 146, "end_line": 158, "label": "SHAP values" }, { "path": "blackbox/features/extract.py", "line": 234, "label": "features_for_run" } ] },
+    { "id": "artifacts", "type": "database", "label": "Model artifacts", "sublabel": "artifacts/ directory", "pos": [920, 200], "size": [120, 64],
+      "sources": [ { "path": "blackbox/model/predict.py", "line": 20, "end_line": 23, "label": "load model.txt" }, { "path": "blackbox/model/train.py", "line": 190, "end_line": 210, "label": "write model files" }, { "path": "blackbox/api/eval.py", "line": 13, "end_line": 21, "label": "GET /eval reads" } ] },
+    { "id": "trainer", "type": "backend", "label": "Trainer / evaluator", "sublabel": "LightGBM + eval", "pos": [1360, 200], "size": [120, 64],
+      "sources": [ { "path": "blackbox/model/train.py", "line": 171, "end_line": 210, "label": "train_model" }, { "path": "blackbox/model/evaluate.py", "line": 272, "end_line": 372, "label": "evaluate" }, { "path": "blackbox/model/train.py", "line": 30, "end_line": 32, "label": "held-out faults" } ] },
+
+    { "id": "repair", "type": "backend", "label": "Auto-repair", "sublabel": "parallel fix replays", "pos": [260, 360], "size": [120, 64],
+      "sources": [ { "path": "blackbox/repair/repair.py", "line": 75, "end_line": 144, "label": "_repair" }, { "path": "blackbox/repair/repair.py", "line": 177, "end_line": 193, "label": "repair entry" } ] },
+    { "id": "replay", "type": "backend", "label": "Replay engine", "sublabel": "overrides · freeze", "pos": [480, 360], "size": [120, 64],
+      "sources": [ { "path": "blackbox/replay/engine.py", "line": 28, "end_line": 78, "label": "replay" }, { "path": "blackbox/replay/compare.py", "line": 52, "end_line": 112, "label": "trace compare" } ] },
+    { "id": "agent", "type": "backend", "label": "Agent runner", "sublabel": "6-step QA agent", "pos": [700, 360], "size": [120, 64],
+      "sources": [ { "path": "blackbox/agent/agent.py", "line": 124, "end_line": 148, "label": "run_agent" }, { "path": "blackbox/agent/agent.py", "line": 304, "end_line": 345, "label": "synthesize + finish" } ] },
+    { "id": "db", "type": "database", "label": "Postgres / SQLite", "sublabel": "SQLModel, 12 tables", "pos": [920, 360], "size": [120, 64],
+      "sources": [ { "path": "blackbox/store/db.py", "line": 24, "end_line": 51, "label": "engine selection" }, { "path": "blackbox/store/models.py", "line": 17, "end_line": 170, "label": "tables" }, { "path": "blackbox/store/repo.py", "line": 30, "end_line": 123, "label": "repository" } ] },
+
+    { "id": "bisect", "type": "backend", "label": "Bisect labeler", "sublabel": "verified culprits", "pos": [260, 520], "size": [120, 64],
+      "sources": [ { "path": "blackbox/labeling/bisect.py", "line": 17, "end_line": 80, "label": "_label_fault_run" } ] },
+    { "id": "retriever", "type": "backend", "label": "Retriever", "sublabel": "MiniLM dot-product", "pos": [480, 520], "size": [120, 64],
+      "sources": [ { "path": "blackbox/corpus/retriever.py", "line": 36, "end_line": 85, "label": "load + search" }, { "path": "blackbox/corpus/embed.py", "line": 15, "end_line": 22, "label": "embedding model" } ] },
+    { "id": "sdk", "type": "backend", "label": "Tracer SDK", "sublabel": "steps + cassette", "pos": [700, 520], "size": [120, 64],
+      "sources": [ { "path": "blackbox/sdk/tracer.py", "line": 176, "end_line": 329, "label": "Tracer.step" }, { "path": "blackbox/sdk/tracer.py", "line": 337, "end_line": 347, "label": "reuse rule" }, { "path": "blackbox/sdk/cassette.py", "line": 33, "end_line": 76, "label": "get_or_call" } ] },
+    { "id": "faults", "type": "backend", "label": "Fault injector", "sublabel": "6 fault types", "pos": [920, 520], "size": [120, 64],
+      "sources": [ { "path": "blackbox/faults/inject.py", "line": 79, "end_line": 135, "label": "run_with_fault" }, { "path": "blackbox/faults/library.py", "line": 223, "end_line": 228, "label": "register_fault" }, { "path": "blackbox/faults/library.py", "line": 15, "end_line": 23, "label": "FAULT_TYPES" } ] },
+    { "id": "datagen", "type": "backend", "label": "Datagen pipeline", "sublabel": "clean, fault, label", "pos": [1140, 520], "size": [120, 64],
+      "sources": [ { "path": "blackbox/datagen/pipeline.py", "line": 66, "end_line": 139, "label": "pipeline + pool" }, { "path": "blackbox/datagen/pipeline.py", "line": 36, "label": "stages" }, { "path": "blackbox/datagen/pipeline.py", "line": 244, "end_line": 273, "label": "labeling" } ] },
+
+    { "id": "corpus", "type": "database", "label": "Corpus files", "sublabel": "jsonl + npy per ws", "pos": [480, 680], "size": [120, 64],
+      "sources": [ { "path": "blackbox/corpus/retriever.py", "line": 38, "end_line": 42, "label": "reads" }, { "path": "blackbox/corpus/embed.py", "line": 35, "end_line": 46, "label": "writes embeddings" }, { "path": "blackbox/corpus/hotpot.py", "line": 74, "end_line": 123, "label": "HotpotQA build" } ] },
+    { "id": "llm", "type": "external", "label": "LLM provider", "sublabel": "Gemini or Groq", "pos": [700, 680], "size": [120, 64],
+      "sources": [ { "path": "blackbox/llm/gemini.py", "line": 17, "end_line": 28, "label": "GeminiLLM" }, { "path": "blackbox/llm/groq.py", "line": 17, "end_line": 32, "label": "GroqLLM" }, { "path": "blackbox/replay/engine.py", "line": 19, "end_line": 25, "label": "provider switch" } ] },
+
+    { "id": "cli", "type": "backend", "label": "bb CLI", "sublabel": "Typer entry point", "pos": [1360, 840], "size": [120, 64],
+      "sources": [ { "path": "blackbox/cli.py", "line": 68, "end_line": 86, "label": "command groups" }, { "path": "pyproject.toml", "line": 40, "end_line": 41, "label": "bb script" } ] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Business edition: incidents + notifications", "wraps": ["notifier", "incidents"] },
+    { "kind": "region", "label": "Traced execution core (blackbox.agent + blackbox.sdk)", "wraps": ["agent", "sdk"] },
+    { "kind": "region", "label": "Offline pipeline (bb CLI process)", "wraps": ["cli", "datagen", "trainer"] }
+  ],
+  "connections": [
+    { "id": "user-frontend", "from": "user", "to": "frontend", "label": "browser", "variant": "emphasis" },
+    { "id": "frontend-api", "from": "frontend", "to": "api", "label": "HTTP /api JSON + cookie (Vite proxy)", "variant": "emphasis" },
+    { "id": "auth-api", "from": "auth", "to": "api", "label": "401 unless signed in", "variant": "security" },
+    { "id": "api-incidents", "from": "incidents", "to": "api", "label": "run finished", "variant": "dashed", "fromSide": "right", "toSide": "left" },
+    { "id": "incidents-notifier", "from": "incidents", "to": "notifier", "label": "notify rules" },
+    { "id": "notifier-smtp", "from": "notifier", "to": "smtp", "label": "send email (3 tries)" },
+    { "id": "api-diagnose", "from": "api", "to": "diagnose", "label": "diagnosis" },
+    { "id": "diagnose-artifacts", "from": "diagnose", "to": "artifacts", "label": "load model" },
+    { "id": "diagnose-db", "from": "diagnose", "to": "db", "label": "read steps · write predictions", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-repair", "from": "api", "to": "repair", "label": "POST repair/jobs", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-replay", "from": "api", "to": "replay", "label": "POST /runs/{id}/replay" },
+    { "id": "api-agent", "from": "api", "to": "agent", "label": "POST /live/run (job thread)", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "repair-replay", "from": "repair", "to": "replay", "label": "fix replays" },
+    { "id": "replay-agent", "from": "replay", "to": "agent", "label": "run_agent" },
+    { "id": "bisect-replay", "from": "bisect", "to": "replay", "label": "freeze_before_idx bisection", "fromSide": "top", "toSide": "bottom" },
+    { "id": "agent-sdk", "from": "agent", "to": "sdk", "label": "step() per plan/retrieve/extract/check/synth", "variant": "emphasis" },
+    { "id": "agent-retriever", "from": "agent", "to": "retriever", "label": "search(query, k)", "fromSide": "bottom", "toSide": "top" },
+    { "id": "retriever-corpus", "from": "retriever", "to": "corpus", "label": "passages.jsonl · embeddings.npy" },
+    { "id": "sdk-llm", "from": "sdk", "to": "llm", "label": "complete_json on cassette miss", "variant": "emphasis" },
+    { "id": "sdk-db", "from": "sdk", "to": "db", "label": "run/step/cassette rows · reuse lookup", "fromSide": "top", "toSide": "bottom" },
+    { "id": "faults-sdk", "from": "faults", "to": "sdk", "label": "fault hooks" },
+    { "id": "datagen-faults", "from": "datagen", "to": "faults", "label": "fault runs" },
+    { "id": "trainer-artifacts", "from": "trainer", "to": "artifacts", "label": "writes model.txt · eval.json" },
+    { "id": "trainer-db", "from": "trainer", "to": "db", "label": "read steps + labels", "fromSide": "bottom", "toSide": "top" },
+    { "id": "cli-trainer", "from": "cli", "to": "trainer", "label": "bb features build · train · eval" },
+    { "id": "cli-datagen", "from": "cli", "to": "datagen", "label": "bb generate all", "fromSide": "top", "toSide": "bottom" },
+    { "id": "cli-bisect", "from": "cli", "to": "bisect", "label": "bb label faults", "fromSide": "left", "toSide": "bottom" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Request path", "items": [
+      "Vite dev server (:5173) proxies /api to uvicorn :8000; every hook appends ?workspace= (hotpot | nimbu) from WorkspaceContext.",
+      "Demo auth middleware gates every route except /api/auth/* when DEMO_AUTH_ENABLED=1; login sets an HMAC-signed cookie.",
+      "VITE_USE_MOCKS=true routes the SPA to in-browser mock handlers; BLACKBOX_MOCK_API=1 makes the API serve JSON fixtures." ] },
+    { "dot": "emerald", "title": "Jobs & persistence", "items": [
+      "Replay, repair, live runs, simulate and verify-fix run in a 4-thread executor; the UI polls GET /jobs/{id} every 700 ms.",
+      "All routers open SQLModel sessions on one engine: Neon Postgres when DATABASE_URL is set, else SQLite WAL at data/blackbox.db.",
+      "The job that finishes a live/simulated run calls on_run_finished(run) for the incident engine; the API also reads runs, incidents and eval.json directly." ] },
+    { "dot": "violet", "title": "Counterfactual engine", "items": [
+      "Tracer.step reuses the source step's output when the input hash matches and idx < freeze_before_idx; otherwise it executes via the cassette.",
+      "Bisect halves the freeze index until the first failing step, then verifies by regenerating that step; verified labels get confidence 1.0.",
+      "Repair diagnoses if needed, then replays each top-3 suspect's fix candidates in parallel and stops at the first passing run.",
+      "GET /compare diffs two runs step-by-step by output hash and reports the first divergence." ] },
+    { "dot": "amber", "title": "Offline pipeline (bb CLI)", "items": [
+      "bb corpus build: HotpotQA via datasets or Nimbu articles → data/<ws>/passages.jsonl + all-MiniLM-L6-v2 embeddings.npy.",
+      "bb generate all: clean runs → injected fault runs → bisect labels (fault) and counterfactual labels (organic), MAX_CONCURRENCY threads.",
+      "bb features build / train / eval: leakage-free step features, LightGBM LambdaRank, held-out faults BAD_QUERY + WRONG_EXTRACTION, LLM-as-judge baseline." ] },
+    { "dot": "rose", "title": "Business edition (nimbu)", "items": [
+      "on_run_finished → diagnose → assign_incident groups failures by culprit signature within 7 days and costs them at COST_PER_WRONG_ANSWER_INR.",
+      "evaluate_rules writes a NotificationLog row and enqueues it; the worker thread sends via SMTP, throttled by NOTIFY_THROTTLE_MINUTES.",
+      "DigestScheduler fires the daily_digest rule once per day at DIGEST_HOUR_LOCAL." ] },
+    { "dot": "slate", "title": "Modes", "items": [
+      "start.sh runs the real stack (demo + mock off); make demo builds the SPA and serves it on :4173 with BLACKBOX_DEMO_MODE=1.",
+      "In demo mode a cassette miss raises instead of calling the LLM, so prepared Live-lab questions replay offline." ] }
+  ]
+}

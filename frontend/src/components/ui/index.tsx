@@ -77,10 +77,12 @@ export function RunTypeLabel({ origin }: { origin: string }) {
     repair: "Fix attempt",
     live: `Live ${t("run")}`,
   };
+  const label = /seed/i.test(origin) ? `Live ${t("run")}` : labels[origin] ?? origin;
   return (
-    <span className="text-xs text-graphite">{labels[origin] ?? origin}</span>
+    <span className="text-xs text-graphite">{label}</span>
   );
 }
+
 export function StepKey({
   value,
   copy = false,

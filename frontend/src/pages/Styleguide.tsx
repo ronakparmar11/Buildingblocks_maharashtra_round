@@ -99,7 +99,7 @@ export default function Styleguide() {
         <Combobox
           value=""
           onChange={() => {}}
-          options={[{ value: "demo", label: "Prepared demo question" }]}
+          options={[{ value: "demo", label: "Prepared question" }]}
         />
         <JsonViewer value={{ answer: "yes", confidence: 0.91 }} />
         <JsonEditor value={json} onChange={(value) => setJson(value)} />

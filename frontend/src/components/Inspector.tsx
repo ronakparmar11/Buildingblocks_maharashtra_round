@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useBlastRadius, useReplay } from "../api/hooks";
 import type { DiagnosisItem, StepRecord } from "../api/types";
+import { displayModel } from "../lib/display";
 import {
   Button,
   JsonEditor,
@@ -235,7 +236,7 @@ export default function Inspector({
               <span>{step.latency_ms} ms</span>
               <span>{step.tokens_in} in</span>
               <span>{step.tokens_out} out</span>
-              <span>{step.model ?? "No model"}</span>
+              <span>{displayModel(step.model)}</span>
               <span>
                 {step.reused
                   ? "Reused"

@@ -8,7 +8,7 @@ from blackbox.agent.agent import run_agent
 from blackbox.corpus.retriever import Retriever
 from blackbox.llm.fake import FakeLLM
 from blackbox.replay.compare import _compare
-from blackbox.replay.engine import _replay
+from blackbox.replay.engine import _materialize_replay, _replay
 from blackbox.replay.graph import _blast_radius
 from blackbox.sdk.cassette import Cassette
 from blackbox.sdk.context import ExecutionContext, Override
@@ -199,6 +199,35 @@ def test_noop_replay_reuses_every_step(session: Session) -> None:
     assert replay.n_executed == 0
     assert replay.parent_run_id == source_id
     assert replay.replay_spec == {"overrides": {}, "freeze_before_idx": None}
+
+
+def test_materialized_replay_applies_complete_frozen_trace(session: Session) -> None:
+    task = _task("materialized-replay", "comparison")
+    script = _script("comparison")
+    retriever = ReplayRetriever()
+    source_id = _clean_run(session, task, script, retriever)
+    source = session.get(Run, source_id)
+    assert source is not None
+    steps = get_steps(session, source_id)
+    overrides = {
+        step.step_key: Override(kind="set_output", output=step.output) for step in steps
+    }
+    overrides["synthesize"] = Override(
+        kind="set_output", output={"answer": "repaired"}
+    )
+
+    replay = _materialize_replay(session, source, overrides, origin="replay")
+    replay_steps = {step.step_key: step for step in get_steps(session, replay.run_id)}
+
+    assert replay.final_answer == "repaired"
+    assert replay.parent_run_id == source_id
+    assert replay.n_reused == len(steps) - 1
+    assert replay.n_executed == 1
+    assert replay.tokens_total == 0
+    assert replay.tokens_saved == source.tokens_total
+    assert replay.replay_spec and replay.replay_spec["materialized"] is True
+    assert replay_steps["synthesize"].output == {"answer": "repaired"}
+    assert replay_steps["synthesize"].overridden is True
 
 
 def test_compare_reports_first_changed_step(session: Session) -> None:

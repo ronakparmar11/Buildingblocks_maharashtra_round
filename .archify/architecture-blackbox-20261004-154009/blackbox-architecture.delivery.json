@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "feca6598-8b3f-4052-b444-8540867a0179",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/pscope/Developer/Buildingblocks_maharashtra_round/.archify/architecture-blackbox-20261004-154009/candidate.json",
+  "output": "/Users/pscope/Developer/Buildingblocks_maharashtra_round/.archify/architecture-blackbox-20261004-154009/blackbox-architecture.html",
+  "specification": {
+    "sha256": "f6c735bab837671f38ac27e88d1fd959e4dc0028d8daf37fb7e422564004b890",
+    "bytes": 23228
+  },
+  "artifact": {
+    "sha256": "3578db7a30c75000d26533014e3af9a55b0fd946863a234958a0b7afe0cbf72d",
+    "bytes": 814742
+  }
+}

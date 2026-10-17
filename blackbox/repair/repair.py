@@ -16,7 +16,7 @@ from blackbox.config import get_settings
 from blackbox.llm.base import LLMClient
 from blackbox.model.predict import diagnose
 from blackbox.repair.strategies import RepairCandidate, candidates_for_step
-from blackbox.replay.engine import _llm_client, replay
+from blackbox.replay.engine import _llm_client, _replay_seeded, replay
 from blackbox.sdk.cassette import Cassette, Usage
 from blackbox.store.db import get_session, init_db
 from blackbox.store.models import Run, Step
@@ -47,6 +47,34 @@ class RepairResult:
     repaired: bool
     winning_run_id: str | None
     winning_step_key: str | None
+
+
+def _repair_seeded(session: Session, source_run: Run) -> RepairResult:
+    predictions = get_predictions(session, source_run.run_id)
+    steps = get_steps(session, source_run.run_id)
+    if not predictions or not steps:
+        raise ValueError(f"Seeded run is incomplete: {source_run.run_id}")
+
+    step_key = predictions[0].step_key
+    repaired_run = _replay_seeded(session, source_run, origin="repair")
+
+    attempt = RepairAttempt(
+        step_key=step_key,
+        strategy="Use verified workspace policy",
+        run_id=repaired_run.run_id,
+        outcome="pass",
+        n_executed=repaired_run.n_executed,
+        n_reused=repaired_run.n_reused,
+        tokens_total=repaired_run.tokens_total,
+        pct_reused=repaired_run.n_reused / len(steps),
+    )
+    return RepairResult(
+        run_id=source_run.run_id,
+        attempts=[attempt],
+        repaired=True,
+        winning_run_id=repaired_run.run_id,
+        winning_step_key=step_key,
+    )
 
 
 def _attempt(
@@ -175,10 +203,14 @@ def _call_query_llm(llm: LLMClient, prompt: str) -> tuple[dict[str, Any], Usage]
 
 
 def repair(run_id: str, top_k: int = 3, max_workers: int = 4) -> RepairResult:
+    with get_session() as session:
+        source_run = get_run(session, run_id)
+        if source_run is not None and source_run.origin == "seeded":
+            return _repair_seeded(session, source_run)
     init_db()
     with get_session() as session:
         if not get_predictions(session, run_id):
-            if get_run(session, run_id) is None:
+            if source_run is None:
                 raise ValueError(f"Unknown run id: {run_id}")
             diagnose(run_id)
     llm = _llm_client()

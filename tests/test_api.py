@@ -11,6 +11,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from blackbox.agent.agent import run_agent
 from blackbox.api import app
 from blackbox.api.common import load_fixture
+from blackbox.api.eval import get_evaluation
 from blackbox.api.schemas import (
     DiagnosisResponse,
     EvalResponse,
@@ -64,6 +65,15 @@ def test_mock_fixtures_validate_against_response_models() -> None:
     assert fixture["repair"]["attempts"][0]["strategy"] == (
         "Use only the sub-answers"
     )
+
+
+def test_nimbu_evaluation_has_mock_values() -> None:
+    evaluation = get_evaluation("nimbu").root
+
+    assert evaluation["kpis"]["top_1"] == 0.84
+    assert evaluation["tables"]["baselines"][0]["n_runs"] == 40
+    assert evaluation["tables"]["lofo"]
+    assert evaluation["tables"]["per_fault"]
 
 
 def test_every_mock_endpoint(mock_client: TestClient) -> None:

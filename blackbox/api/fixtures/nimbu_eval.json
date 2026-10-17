@@ -1,0 +1,48 @@
+{
+  "kpis": {
+    "top_1": 0.84,
+    "top_3": 0.94,
+    "mrr": 0.89,
+    "latency_ms": 1.2,
+    "top1_support": 0.68
+  },
+  "tables": {
+    "baselines": [
+      {"set": "A", "method": "Model", "top_1": 0.84, "top_3": 0.94, "mrr": 0.89, "n_runs": 40},
+      {"set": "A", "method": "LLM reading the trace", "top_1": 0.62, "top_3": 0.79, "mrr": 0.7, "n_runs": 40},
+      {"set": "A", "method": "Heuristic", "top_1": 0.48, "top_3": 0.65, "mrr": 0.56, "n_runs": 40},
+      {"set": "A", "method": "Last step", "top_1": 0.29, "top_3": 0.42, "mrr": 0.35, "n_runs": 40},
+      {"set": "A", "method": "Random", "top_1": 0.12, "top_3": 0.31, "mrr": 0.2, "n_runs": 40},
+      {"set": "B", "method": "Model", "top_1": 0.71, "top_3": 0.89, "mrr": 0.8, "n_runs": 40},
+      {"set": "B", "method": "LLM reading the trace", "top_1": 0.53, "top_3": 0.72, "mrr": 0.62, "n_runs": 40},
+      {"set": "B", "method": "Heuristic", "top_1": 0.41, "top_3": 0.58, "mrr": 0.49, "n_runs": 40},
+      {"set": "B", "method": "Last step", "top_1": 0.25, "top_3": 0.38, "mrr": 0.31, "n_runs": 40},
+      {"set": "B", "method": "Random", "top_1": 0.1, "top_3": 0.27, "mrr": 0.18, "n_runs": 40},
+      {"set": "C", "method": "Model", "top_1": 0.63, "top_3": 0.84, "mrr": 0.73, "n_runs": 40},
+      {"set": "C", "method": "LLM reading the trace", "top_1": 0.47, "top_3": 0.67, "mrr": 0.56, "n_runs": 40},
+      {"set": "C", "method": "Heuristic", "top_1": 0.36, "top_3": 0.52, "mrr": 0.44, "n_runs": 40},
+      {"set": "C", "method": "Last step", "top_1": 0.22, "top_3": 0.35, "mrr": 0.28, "n_runs": 40},
+      {"set": "C", "method": "Random", "top_1": 0.09, "top_3": 0.24, "mrr": 0.16, "n_runs": 40},
+      {"set": "support", "method": "Model", "top_1": 0.68, "top_3": 0.86, "mrr": 0.77, "n_runs": 50},
+      {"set": "support", "method": "LLM reading the trace", "top_1": 0.5, "top_3": 0.7, "mrr": 0.59, "n_runs": 50},
+      {"set": "support", "method": "Heuristic", "top_1": 0.39, "top_3": 0.56, "mrr": 0.47, "n_runs": 50},
+      {"set": "support", "method": "Last step", "top_1": 0.24, "top_3": 0.37, "mrr": 0.3, "n_runs": 50},
+      {"set": "support", "method": "Random", "top_1": 0.1, "top_3": 0.26, "mrr": 0.17, "n_runs": 50}
+    ],
+    "lofo": [
+      {"fault_type": "Archived article retrieval", "top_1": 0.74, "top_3": 0.91, "mrr": 0.82, "n_runs": 24},
+      {"fault_type": "Wrong extraction", "top_1": 0.69, "top_3": 0.86, "mrr": 0.77, "n_runs": 24},
+      {"fault_type": "Unsupported answer", "top_1": 0.67, "top_3": 0.84, "mrr": 0.75, "n_runs": 24},
+      {"fault_type": "Broken plan", "top_1": 0.73, "top_3": 0.89, "mrr": 0.8, "n_runs": 24}
+    ],
+    "per_fault": [
+      {"fault_type": "Archived article retrieval", "top_1": 0.88, "top_3": 0.96, "mrr": 0.92, "n_runs": 30},
+      {"fault_type": "Wrong extraction", "top_1": 0.82, "top_3": 0.93, "mrr": 0.87, "n_runs": 30},
+      {"fault_type": "Unsupported answer", "top_1": 0.71, "top_3": 0.87, "mrr": 0.79, "n_runs": 30},
+      {"fault_type": "Broken plan", "top_1": 0.68, "top_3": 0.85, "mrr": 0.76, "n_runs": 30}
+    ]
+  },
+  "replay": {"avg_pct_reused": 0.76, "avg_tokens_saved": 884, "n_replays": 48},
+  "bisect": {"avg_replays": 3.6, "avg_steps": 11.2, "n_labels": 42},
+  "repair": {"status": "complete", "success_top_1": 0.58, "success_top_3": 0.74}
+}

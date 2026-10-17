@@ -2,6 +2,7 @@ import { Check, Copy, Flag } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { useDiagnosis, useRun } from "../api/hooks";
+import { displayModel } from "../lib/display";
 import { t } from "../lib/vocab";
 import ExecutionRoute from "../components/ExecutionRoute";
 import FdrTape from "../components/FdrTape";
@@ -148,7 +149,7 @@ export default function RunDetailPage() {
               ["Steps", data.run.n_steps],
               ["Tokens spent", data.run.tokens_total.toLocaleString()],
               ["Duration", `${(data.run.latency_ms / 1000).toFixed(1)} s`],
-              ["Model", data.steps.find((step) => step.model)?.model ?? "—"],
+              ["Model", displayModel(data.steps.find((step) => step.model)?.model, "—")],
               ["Created", new Date(data.run.created_at).toLocaleString()],
             ].map(([label, value]) => (
               <div key={String(label)}>

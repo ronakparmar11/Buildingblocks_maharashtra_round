@@ -68,7 +68,8 @@ export default function LiveLabPage() {
   const [target, setTarget] = useState("");
   const live = useLiveRun();
   const [runId, setRunId] = useState<string>();
-  const run = useRun(runId, true);
+  const liveJob = useJob(runId);
+  const run = useRun(runId, false, liveJob.data?.status === "completed");
   const diagnosis = useDiagnosis(runId, Boolean(run.data));
   const targets = useFaultTargets(taskId);
   const [reveal, setReveal] = useState(-1);
@@ -129,7 +130,7 @@ export default function LiveLabPage() {
     return <div className="space-y-5 p-6"><Skeleton className="h-8 w-36"/><div className="grid grid-cols-2 gap-6"><Skeleton className="h-40"/><Skeleton className="h-40"/></div></div>;
   if (tasks.isError) return <ErrorState onRetry={() => tasks.refetch()} />;
   if (!tasks.data?.length && mode === "One conversation")
-    return <EmptyState title="No prepared demo questions are available." />;
+    return <EmptyState title="No prepared questions are available." />;
   return (
     <div className="mx-auto max-w-[1500px] px-6 py-8 text-md">
       <h1 className="heading text-2xl">Live lab</h1>
@@ -148,7 +149,7 @@ export default function LiveLabPage() {
           <StepNumber number={1} state={runId ? "done" : "active"} />
           <div className="min-w-0 flex-1">
             <h2 className="heading text-lg">Pick a {t("task")}</h2>
-            <p className="mb-3 text-sm text-graphite">Prepared for demo</p>
+            <p className="mb-3 text-sm text-graphite">Ready to run</p>
             {workspace === "nimbu" && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {(tasks.data ?? []).slice(0, 3).map((task) => (
@@ -225,6 +226,17 @@ export default function LiveLabPage() {
           Run the agent
         </Button>
       </div>
+      {runId && !run.data && !run.isError && !liveJob.isError && liveJob.data?.status !== "failed" && (
+        <p className="mt-5 flex items-center justify-end gap-2 text-sm text-graphite">
+          <LoaderCircle className="h-4 w-4 animate-spin" />
+          Running the conversation…
+        </p>
+      )}
+      {(liveJob.isError || liveJob.data?.status === "failed") && (
+        <div className="mt-5">
+          <ErrorState onRetry={reset} />
+        </div>
+      )}
       {run.isError && (
         <div className="mt-5">
           <ErrorState onRetry={() => run.refetch()} />

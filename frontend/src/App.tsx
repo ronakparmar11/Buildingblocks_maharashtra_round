@@ -195,6 +195,7 @@ function Shell({ session, onSignedOut }: { session: SessionResponse; onSignedOut
           <Route path="/settings" element={<Navigate replace to="/settings/notifications" />} />
           <Route path="/settings/notifications" element={<SettingsNotificationsPage />} />
           <Route path="/styleguide" element={<Styleguide />} />
+          <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
       </main>
       {shortcuts && (

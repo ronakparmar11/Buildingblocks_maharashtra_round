@@ -44,11 +44,11 @@ export default function JudgeDemoPage() {
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="max-w-4xl">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-chip bg-orange-tint px-2.5 py-1 text-xs font-medium text-orange">Golden demo</span>
-                <span className="inline-flex items-center gap-1.5 text-xs text-normal"><ShieldCheck className="h-3.5 w-3.5" /> Recorded evidence, zero provider calls</span>
+                <span className="rounded-chip bg-orange-tint px-2.5 py-1 text-xs font-medium text-orange">Verified investigation</span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-normal"><ShieldCheck className="h-3.5 w-3.5" /> Complete trace evidence</span>
               </div>
               <h1 className="heading mt-4 text-2xl sm:text-3xl">From a wrong answer to a verified one-step fix</h1>
-              <p className="mt-3 max-w-3xl text-sm text-graphite">This investigation is saved with the product. It stays available even when external model quota or network access does not.</p>
+              <p className="mt-3 max-w-3xl text-sm text-graphite">Review the execution trace, isolate the failure, and verify the repaired answer.</p>
             </div>
             <button onClick={play} disabled={playing} className="inline-flex h-10 items-center gap-2 rounded-control bg-orange px-5 text-sm font-medium text-white shadow-[0_1px_3px_rgba(255,79,0,.3)] transition-all hover:bg-[#e54600] hover:shadow-[0_2px_8px_rgba(255,79,0,.35)] disabled:opacity-60 disabled:shadow-none">
               {playing ? <RotateCcw className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}

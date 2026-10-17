@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
+from sqlalchemy import and_, func
 from sqlmodel import col, select
 
 from blackbox.api.common import (
@@ -12,6 +13,7 @@ from blackbox.api.schemas import (
     DiagnosisResponse,
     RunDetailResponse,
     RunListResponse,
+    RunSummary,
 )
 from blackbox.store.db import get_session
 from blackbox.store.models import Prediction, Run, Task
@@ -47,11 +49,62 @@ def list_run_records(
         return RunListResponse(items=items[:limit], total=int(matches))
 
     with get_session() as session:
+        conditions = [Run.workspace == workspace]
+        if outcome is not None:
+            conditions.append(Run.outcome == outcome)
+        if origin is not None:
+            conditions.append(Run.origin == origin)
+        statement = select(Run).where(*conditions)
+        needs_post_filter = any((split, fault_type, category, q))
+        if not needs_post_filter:
+            rows = list(
+                session.exec(
+                    select(Run, Task, Prediction)
+                    .join(Task, Task.task_id == Run.task_id)
+                    .outerjoin(
+                        Prediction,
+                        and_(
+                            Prediction.run_id == Run.run_id,
+                            Prediction.rank == 1,
+                        ),
+                    )
+                    .where(*conditions)
+                    .order_by(col(Run.created_at).desc())
+                    .offset(offset)
+                    .limit(limit)
+                ).all()
+            )
+            total = session.exec(
+                select(func.count()).select_from(Run).where(*conditions)
+            ).one()
+            return RunListResponse(
+                items=[
+                    RunSummary(
+                        run_id=run.run_id,
+                        task_id=run.task_id,
+                        question=task.question,
+                        origin=run.origin,
+                        outcome=run.outcome,
+                        score_f1=run.score_f1,
+                        n_steps=run.n_steps,
+                        created_at=run.created_at,
+                        parent_run_id=run.parent_run_id,
+                        predicted_culprit=(
+                            {
+                                "step_key": prediction.step_key,
+                                "score": prediction.score,
+                            }
+                            if prediction is not None
+                            else None
+                        ),
+                    )
+                    for run, task, prediction in rows
+                ],
+                total=total,
+            )
         runs = list(
             session.exec(
-                select(Run)
-                .where(Run.workspace == workspace)
-                .order_by(col(Run.created_at).desc())
+                statement.order_by(col(Run.created_at).desc())
             ).all()
         )
         matched: list[Run] = []
@@ -59,10 +112,6 @@ def list_run_records(
             task = session.get(Task, run.task_id)
             fault = get_fault(session, run.run_id)
             if task is None:
-                continue
-            if outcome is not None and run.outcome != outcome:
-                continue
-            if origin is not None and run.origin != origin:
                 continue
             if split is not None and task.split != split:
                 continue
